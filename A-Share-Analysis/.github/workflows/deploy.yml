@@ -1,0 +1,47 @@
+name: Build and Push Docker Image
+
+# 触发条件：当 main 分支有代码 push（推送）时执行
+on:
+  push:
+    branches:
+      - main
+
+# 环境变量：定义你的镜像名称（全小写）
+env:
+  IMAGE_NAME: my-awesome-app
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest # 使用 GitHub 提供的免费 Ubuntu 虚拟机
+    
+    steps:
+      # 1. 拉取你的代码到虚拟机中
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # 2. 登录到 GitHub 官方的免费镜像仓库 (GHCR)
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }} # GitHub 自动生成的临时密码，无需手动配置
+
+      # 3. 提取元数据（自动生成版本标签，防止镜像重名冲突）
+      - name: Extract metadata for Docker
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=raw,value=latest
+            type=sha,format=short
+
+      # 4. 开始构建 Docker 镜像并推送到仓库
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: ${{ id.meta.outputs.tags }}
+          labels: ${{ id.meta.outputs.labels }}
