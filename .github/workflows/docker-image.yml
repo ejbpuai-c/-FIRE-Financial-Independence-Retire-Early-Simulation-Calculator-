@@ -14,5 +14,9 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
+    
     - name: Build the Docker image
-      run: docker build . --file Dockerfile --tag my-image-name:$(date +%s)
+      # 1. --file 指向子文件夹里的 Dockerfile
+      # 2. 末尾的 "." 改成 "./A-Share-Analysis"，告诉它去这个文件夹里拿代码
+      run: docker build --file ./A-Share-Analysis/Dockerfile --tag my-image-name:$(date +%s) ./A-Share-Analysis
+
