@@ -1,22 +1,41 @@
-name: Docker Image CI
+name: Docker Image CI/CD
 
 on:
   push:
     branches: [ "main" ]
-  pull_request:
-    branches: [ "main" ]
+
+env:
+  IMAGE_NAME: a-share-analysis # 镜像名字（必须全小写）
 
 jobs:
-
   build:
-
     runs-on: ubuntu-latest
-
     steps:
     - uses: actions/checkout@v4
-    
-    - name: Build the Docker image
-      # 1. --file 指向子文件夹里的 Dockerfile
-      # 2. 末尾的 "." 改成 "./A-Share-Analysis"，告诉它去这个文件夹里拿代码
-      run: docker build --file ./A-Share-Analysis/Dockerfile --tag my-image-name:$(date +%s) ./A-Share-Analysis
 
+    # 1. 登录到 GitHub 官方的免费镜像仓库 (GHCR)
+    - name: Log in to GitHub Container Registry
+      uses: docker/login-action@v3
+      with:
+        registry: ghcr.io
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+
+    # 2. 提取元数据（自动生成版本标签，防止重名）
+    - name: Extract metadata
+      id: meta
+      uses: docker/metadata-action@v5
+      with:
+        images: ghcr.io/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}
+        tags: |
+          type=raw,value=latest
+          type=sha,format=short
+
+    # 3. 开始构建并自动上传
+    - name: Build and push Docker image
+      uses: docker/build-push-action@v5
+      with:
+        context: ./A-Share-Analysis
+        file: ./A-Share-Analysis/Dockerfile
+        push: true
+        tags: ${{ id.meta.outputs.tags }}
