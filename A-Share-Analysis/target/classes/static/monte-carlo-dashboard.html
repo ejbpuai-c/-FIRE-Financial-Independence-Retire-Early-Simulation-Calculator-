@@ -1,0 +1,2221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Portfolio Simulator</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+
+<script src="https://unpkg.com/vue@3.4.21/dist/vue.global.prod.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/seedrandom@3.0.5/seedrandom.min.js" crossorigin="anonymous"></script>
+<script src="./js/simulation.js"></script>
+
+<style>
+  :root {
+    --ink: #0B0E14;
+    --panel: #131722;
+    --panel-2: #171c29;
+    --border: #232838;
+    --text: #E8E6E1;
+    --text-dim: #8B92A5;
+    --amber: #D4A24C;
+    --teal: #4FA88D;
+    --brick: #C1554A;
+  }
+
+  * { box-sizing: border-box; }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { animation-duration: 0.001ms !important; transition-duration: 0.001ms !important; }
+  }
+
+  body {
+    margin: 0;
+    background: var(--ink);
+    background-image:
+      radial-gradient(ellipse 800px 400px at 15% -10%, rgba(212,162,76,0.07), transparent),
+      radial-gradient(ellipse 600px 400px at 100% 10%, rgba(79,168,141,0.05), transparent);
+    color: var(--text);
+    font-family: "IBM Plex Sans", sans-serif;
+    min-height: 100vh;
+    padding: 32px 20px 60px;
+  }
+
+  .wrap { max-width: 1180px; margin: 0 auto; }
+
+  /* ---------- Header ---------- */
+  header { margin-bottom: 22px; }
+  .header-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 12px;
+  }
+  .lang-switch {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .lang-switch label {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 10px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+  }
+  select.lang-select {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text);
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 12px;
+    padding: 6px 8px;
+    cursor: pointer;
+  }
+  select.lang-select:focus-visible { outline: 2px solid var(--amber); outline-offset: 1px; }
+  @media (max-width: 520px) {
+    .header-top { flex-direction: column; }
+  }
+
+  /* ---------- Parameter glossary ---------- */
+  .glossary-box {
+    margin-top: 22px;
+    border-top: 1px solid var(--border);
+    padding-top: 14px;
+  }
+  .glossary-box summary {
+    font-size: 12px;
+    color: var(--text-dim);
+    cursor: pointer;
+    list-style: none;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .glossary-box summary::-webkit-details-marker { display: none; }
+  .glossary-box summary::before {
+    content: "▸";
+    font-size: 10px;
+    transition: transform 0.15s;
+  }
+  .glossary-box[open] summary::before { transform: rotate(90deg); }
+  .glossary-box summary:hover { color: var(--amber); }
+  .glossary-list {
+    margin: 12px 0 0;
+    padding: 0;
+    list-style: none;
+  }
+  .glossary-list li {
+    margin-bottom: 10px;
+    font-size: 12.5px;
+    line-height: 1.55;
+    color: var(--text-dim);
+  }
+  .glossary-list li:last-child { margin-bottom: 0; }
+  .glossary-term {
+    display: block;
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 12px;
+    color: var(--text);
+    margin-bottom: 2px;
+  }
+
+  .eyebrow {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 12px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--amber);
+    margin: 0 0 8px;
+  }
+  h1 {
+    font-size: 26px;
+    font-weight: 600;
+    margin: 0 0 6px;
+    letter-spacing: -0.01em;
+  }
+  .subhead { color: var(--text-dim); font-size: 14px; margin: 0; max-width: 640px; }
+
+  /* ---------- Ticker readout strip ---------- */
+  .ticker {
+    font-family: "IBM Plex Mono", monospace;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    margin: 20px 0 14px;
+    overflow: hidden;
+  }
+  .ticker-cell {
+    flex: 1 1 160px;
+    padding: 14px 18px;
+    border-right: 1px solid var(--border);
+  }
+  .ticker-cell:last-child { border-right: none; }
+  .ticker-label {
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    display: block;
+    margin-bottom: 6px;
+  }
+  .ticker-value {
+    font-size: 20px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+  }
+  .ticker-value.amber { color: var(--amber); }
+  .ticker-value.teal { color: var(--teal); }
+  .ticker-value.brick { color: var(--brick); }
+  .ticker-note { display: block; margin-top: 4px; font-size: 10.5px; color: var(--text-dim); }
+
+  /* ---------- Key results summary ---------- */
+  .summary-line {
+    font-size: 14px;
+    line-height: 1.5;
+    color: var(--text);
+    background: rgba(212,162,76,0.06);
+    border: 1px solid rgba(212,162,76,0.25);
+    border-radius: 8px;
+    padding: 12px 16px;
+    margin: 0 0 22px;
+  }
+  .summary-line.dim {
+    color: var(--text-dim);
+    background: transparent;
+    border-color: var(--border);
+    font-style: italic;
+  }
+  .summary-line strong { color: var(--amber); font-variant-numeric: tabular-nums; }
+
+  /* ---------- Layout ---------- */
+  .grid {
+    display: grid;
+    grid-template-columns: 300px 1fr;
+    gap: 20px;
+    align-items: start;
+  }
+  @media (max-width: 860px) {
+    .grid { grid-template-columns: 1fr; }
+  }
+
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px;
+  }
+
+  .panel-title {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin: 0 0 18px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .panel-title::after {
+    content: "";
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  /* ---------- Presets ---------- */
+  .preset-row { margin-bottom: 20px; }
+  .preset-row label {
+    display: block;
+    font-size: 11px;
+    color: var(--text-dim);
+    margin-bottom: 6px;
+  }
+  select.preset-select {
+    width: 100%;
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text);
+    font-family: "IBM Plex Sans", sans-serif;
+    font-size: 13px;
+    padding: 9px 10px;
+  }
+  select.preset-select:focus-visible { outline: 2px solid var(--amber); outline-offset: 1px; }
+
+  /* ---------- Parameter controls ----------
+     These interface directly with the backend simulation, so they're kept
+     plain and standard: a label, a slider, a number — no ornamentation. */
+  .param { margin-bottom: 18px; }
+  .param:last-child { margin-bottom: 4px; }
+  .param-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 6px;
+  }
+  .param-name { font-size: 13px; color: var(--text); display: flex; align-items: center; gap: 5px; }
+  .param-value {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 13px;
+    color: var(--text-dim);
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Tooltip icon: native title attribute for the hover text, kept small
+     and low-emphasis since it's a secondary affordance, not a control. */
+  .info-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    border: 1px solid var(--text-dim);
+    color: var(--text-dim);
+    font-size: 10px;
+    font-family: "IBM Plex Mono", monospace;
+    cursor: help;
+    flex-shrink: 0;
+  }
+  .info-icon:hover { border-color: var(--amber); color: var(--amber); }
+
+  input[type="range"] {
+    width: 100%;
+    accent-color: var(--amber);
+    background: transparent;
+    margin: 0;
+  }
+  input[type="range"]:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
+
+  .param-range-note {
+    display: flex;
+    justify-content: space-between;
+    font-size: 10px;
+    color: var(--text-dim);
+    margin-top: 3px;
+    font-family: "IBM Plex Mono", monospace;
+  }
+
+  .field-row { display: flex; gap: 10px; margin-top: 18px; }
+  .field { flex: 1; }
+  .field label {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 12px;
+    color: var(--text-dim);
+    margin-bottom: 6px;
+  }
+  .field input[type="number"] {
+    width: 100%;
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text);
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 13px;
+    padding: 8px 10px;
+  }
+  .field input[type="number"]:focus-visible {
+    outline: 2px solid var(--amber);
+    outline-offset: 1px;
+  }
+
+  .run-btn {
+    width: 100%;
+    margin-top: 24px;
+    background: var(--amber);
+    color: #1a1305;
+    border: none;
+    border-radius: 8px;
+    padding: 12px 16px;
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    cursor: pointer;
+    transition: background-color 0.15s, transform 0.05s;
+  }
+  .run-btn:hover:not(:disabled) { background: #e0b562; }
+  .run-btn:active:not(:disabled) { transform: scale(0.99); }
+  .run-btn:disabled { opacity: 0.55; cursor: not-allowed; }
+  .run-btn:focus-visible { outline: 2px solid var(--teal); outline-offset: 2px; }
+
+  .secondary-btn {
+    width: 100%;
+    margin-top: 10px;
+    background: transparent;
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 16px;
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 12px;
+    cursor: pointer;
+    transition: border-color 0.15s, color 0.15s;
+  }
+  .secondary-btn:hover:not(:disabled) { border-color: var(--teal); color: var(--teal); }
+  .secondary-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .secondary-btn.active { border-color: var(--amber); color: var(--amber); }
+
+  .stale-note {
+    text-align: center;
+    font-size: 11px;
+    color: var(--text-dim);
+    margin-top: 10px;
+    min-height: 14px;
+  }
+
+  .seed-row { margin-top: 16px; }
+  .seed-row label {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 11px;
+    color: var(--text-dim);
+    margin-bottom: 6px;
+  }
+  .seed-row input[type="text"] {
+    width: 100%;
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text);
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 12px;
+    padding: 7px 9px;
+  }
+  .seed-row input[type="text"]:focus-visible { outline: 2px solid var(--amber); outline-offset: 1px; }
+  .seed-readout {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 11px;
+    color: var(--text-dim);
+    margin: 8px 0 0;
+  }
+  .seed-value { color: var(--amber); }
+
+  /* ---------- Formula disclosure ---------- */
+  details.formula-box {
+    margin-top: 22px;
+    border-top: 1px solid var(--border);
+    padding-top: 14px;
+  }
+  details.formula-box summary {
+    font-size: 12px;
+    color: var(--text-dim);
+    cursor: pointer;
+    list-style: none;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  details.formula-box summary::-webkit-details-marker { display: none; }
+  details.formula-box summary::before {
+    content: "▸";
+    font-size: 10px;
+    transition: transform 0.15s;
+  }
+  details.formula-box[open] summary::before { transform: rotate(90deg); }
+  details.formula-box summary:hover { color: var(--amber); }
+  .formula-body {
+    margin-top: 12px;
+    font-size: 12.5px;
+    line-height: 1.6;
+    color: var(--text-dim);
+  }
+  .formula-eq {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 13px;
+    color: var(--amber);
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 10px 12px;
+    margin: 8px 0 10px;
+    overflow-x: auto;
+    white-space: nowrap;
+  }
+  .formula-body dl { margin: 8px 0 0; }
+  .formula-body dt {
+    font-family: "IBM Plex Mono", monospace;
+    color: var(--text);
+    display: inline;
+  }
+  .formula-body dd { margin: 0 0 4px 16px; display: inline; }
+  .formula-body dd::after { content: "\A"; white-space: pre; }
+
+  /* ---------- Chart panel ---------- */
+  .chart-panel { display: flex; flex-direction: column; }
+  .chart-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .legend-inline {
+    display: flex;
+    gap: 16px;
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 11px;
+    color: var(--text-dim);
+    flex-wrap: wrap;
+  }
+  .legend-inline span { display: flex; align-items: center; gap: 6px; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+
+  .canvas-wrap { position: relative; height: 380px; overflow: hidden; }
+
+  .error-banner {
+    background: rgba(193,85,74,0.12);
+    border: 1px solid var(--brick);
+    color: #f0c4bf;
+    padding: 10px 14px;
+    border-radius: 6px;
+    margin-bottom: 14px;
+    font-size: 13px;
+  }
+
+  .completion-banner {
+    background: rgba(79,168,141,0.12);
+    border: 1px solid var(--teal);
+    color: #c9ece2;
+    padding: 10px 14px;
+    border-radius: 6px;
+    margin-bottom: 14px;
+    font-size: 13px;
+    font-family: "IBM Plex Mono", monospace;
+  }
+
+  .empty-state {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    color: var(--text-dim);
+    font-size: 13px;
+    text-align: center;
+    padding: 20px;
+  }
+
+  .overlay-loading {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(19,23,34,0.6);
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 12px;
+    color: var(--text-dim);
+    border-radius: 8px;
+  }
+
+  /* ---------- FIRE section ---------- */
+  .fire-section {
+    margin-top: 22px;
+    padding-top: 18px;
+    border-top: 1px solid var(--border);
+  }
+  .fire-stats {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 14px;
+    margin: 12px 0 4px;
+  }
+  .fire-stat {
+    flex: 1 1 160px;
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 14px;
+    font-family: "IBM Plex Mono", monospace;
+  }
+  .fire-stat .ticker-label { display: block; margin-bottom: 6px; }
+  .fire-stat .ticker-value { display: block; font-size: 18px; }
+  .fire-stat .ticker-note { display: block; margin-top: 4px; font-size: 10px; color: var(--text-dim); font-family: "IBM Plex Sans", sans-serif; }
+
+  .parachute-box {
+    margin-top: 18px;
+    padding: 16px;
+    background: rgba(79,168,141,0.05);
+    border: 1px solid rgba(79,168,141,0.2);
+    border-radius: 8px;
+  }
+  .parachute-title {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 12px;
+    color: var(--teal);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin: 0 0 14px;
+  }
+  .parachute-delta {
+    font-size: 12.5px;
+    color: var(--text-dim);
+    line-height: 1.5;
+    margin: 10px 0 0;
+  }
+  .parachute-delta strong { color: var(--text); }
+  .parachute-error {
+    font-size: 12px;
+    color: var(--brick);
+    margin: 10px 0 0;
+  }
+
+  /* ---------- Histogram section ---------- */
+  .histogram-section {
+    margin-top: 22px;
+    padding-top: 18px;
+    border-top: 1px solid var(--border);
+  }
+  .histogram-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 4px;
+  }
+  .histogram-title { font-size: 12px; color: var(--text-dim); font-family: "IBM Plex Mono", monospace; text-transform: uppercase; letter-spacing: 0.08em; }
+  .histogram-note { font-size: 11px; color: var(--text-dim); margin: 0 0 10px; }
+  .histogram-canvas-wrap { position: relative; height: 180px; overflow: hidden; }
+
+  footer {
+    margin-top: 24px;
+  }
+  .footer-actions {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 14px;
+  }
+  .csv-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 13px;
+    padding: 10px 18px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: border-color 0.15s, color 0.15s;
+  }
+  .csv-btn:hover:not(:disabled) { border-color: var(--teal); color: var(--teal); }
+  .csv-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  .footer-note {
+    text-align: center;
+    color: var(--text-dim);
+    font-size: 11px;
+    font-family: "IBM Plex Mono", monospace;
+    margin: 0 0 10px;
+  }
+
+  .disclaimer {
+    text-align: center;
+    color: var(--text-dim);
+    font-size: 10.5px;
+    line-height: 1.5;
+    max-width: 640px;
+    margin: 0 auto;
+    opacity: 0.75;
+  }
+
+  .print-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 13px;
+    padding: 10px 18px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: border-color 0.15s, color 0.15s;
+  }
+  .print-btn:hover:not(:disabled) { border-color: var(--amber); color: var(--amber); }
+  .print-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  /* Print-only data table: hidden on screen, shown only in the print stylesheet. */
+  .print-only-table { display: none; }
+
+  /* ---------- Print / Save as PDF ----------
+     Two-page layout: page 1 is everything above .grid (summary, FIRE headline
+     stats, the data table) — numbers and text only. Page 2 is forced to start
+     fresh via break-before and holds just the chart panel (path chart,
+     histogram, FIRE curve). Controls, sliders, and the parachute box are
+     hidden throughout since they aren't meaningful on paper.
+     Caveat: the chart canvases keep their on-screen dark-mode colors since
+     Chart.js bakes tick/line colors into the rendered bitmap — a fully light
+     print theme would need the charts re-rendered with different colors
+     beforehand, which this does not do. */
+  @media print {
+    @page { size: A4; margin: 14mm; }
+
+    body { background: var(--ink); padding: 0; }
+    .no-print { display: none !important; }
+    .panel[aria-label="Simulation parameters"] { display: none; }
+
+    /* Only the chart panel remains in the grid at print time — render it as
+       a plain block so page-break rules apply predictably rather than
+       relying on grid-specific pagination behavior. */
+    .grid { display: block; }
+
+    /* Page 1: data. Everything above this point (header, ticker, summary,
+       FIRE stats, print-only table) prints normally with no forced break. */
+    .print-only-table {
+      display: table;
+      width: 100%;
+      border-collapse: collapse;
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 10px;
+      color: var(--text);
+      margin-top: 16px;
+    }
+    .print-only-table caption {
+      text-align: left;
+      font-size: 11px;
+      color: var(--text-dim);
+      margin-bottom: 8px;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+    .print-only-table th, .print-only-table td {
+      border: 1px solid var(--border);
+      padding: 4px 6px;
+      text-align: right;
+    }
+    .print-only-table td:first-child, .print-only-table th:first-child { text-align: left; }
+    .print-only-table thead tr { background: var(--panel-2); }
+
+    /* Page 2: charts. Forced onto a fresh page and kept from splitting mid-chart. */
+    .chart-panel {
+      break-before: page;
+      page-break-before: always;
+    }
+    .canvas-wrap, .histogram-canvas-wrap, .fire-stat {
+      break-inside: avoid;
+      page-break-inside: avoid;
+    }
+    .parachute-box { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<div id="app" class="wrap">
+
+  <header>
+    <div class="header-top">
+      <div>
+        <p class="eyebrow">{{ t.header.eyebrow }}</p>
+        <h1>{{ t.header.title }}</h1>
+      </div>
+      <div class="lang-switch no-print">
+        <label for="lang-select">{{ t.header.langLabel }}</label>
+        <select id="lang-select" class="lang-select" v-model="lang">
+          <option v-for="opt in LANG_OPTIONS" :key="opt.code" :value="opt.code">{{ opt.label }}</option>
+        </select>
+      </div>
+    </div>
+    <p class="subhead">{{ t.header.subhead(form.simulations.toLocaleString(), form.years) }}</p>
+  </header>
+
+  <!-- Live readout strip: recomputed client-side instantly on every slider move,
+       using the closed-form GBM formulas, ahead of the heavier server-side simulation. -->
+  <div class="ticker" aria-live="polite">
+    <div class="ticker-cell">
+      <span class="ticker-label">{{ t.ticker.medianLabel }}</span>
+      <span class="ticker-value amber">{{ fmt(instant.medianEstimate) }}</span>
+      <span class="ticker-note">{{ t.ticker.medianNote(form.years) }}</span>
+    </div>
+    <div class="ticker-cell">
+      <span class="ticker-label">{{ t.ticker.cagrLabel }}</span>
+      <span class="ticker-value teal">{{ pct(form.mu) }}</span>
+      <span class="ticker-note">{{ t.ticker.cagrNote }}</span>
+    </div>
+    <div class="ticker-cell">
+      <span class="ticker-label">{{ t.ticker.lossLabel }}</span>
+      <span class="ticker-value" :class="instant.lossProb > 0.3 ? 'brick' : 'teal'">{{ pct(instant.lossProb) }}</span>
+      <span class="ticker-note">{{ t.ticker.lossNote }}</span>
+    </div>
+    <div class="ticker-cell">
+      <span class="ticker-label">{{ t.ticker.statusLabel }}</span>
+      <span class="ticker-value" :class="isStale ? 'brick' : 'teal'">{{ isStale ? t.ticker.statusNotRun : t.ticker.statusUpToDate }}</span>
+      <span class="ticker-note">{{ lastRunLabel }}</span>
+    </div>
+  </div>
+
+  <!-- Key results summary: plain-language takeaway, tied to the last completed
+       run (not the live sliders) so it always matches what's on the chart. -->
+  <p v-if="summary" class="summary-line">
+    {{ t.summary.intro }}
+    <strong>{{ pct(summary.gainProb) }}</strong> {{ t.summary.gainProbMid }}
+    <strong>{{ summary.years }}</strong> {{ t.summary.yearsMid }}
+    <strong>{{ fmt(summary.medianFinal) }}</strong>{{ t.summary.tail(summary.simulations.toLocaleString()) }}
+  </p>
+  <p v-else class="summary-line dim">{{ t.summary.placeholder }}</p>
+
+  <!-- FIRE headline stats: lives at the top level (not inside the chart panel)
+       so it's visible without scrolling, and so print can put it on the
+       "data" page while the charts print on their own page. -->
+  <div class="fire-stats" v-if="lastFire">
+    <div class="fire-stat">
+      <span class="ticker-label">{{ t.fireStats.lineLabel }}</span>
+      <span class="ticker-value amber">{{ fmt(lastFire.threshold) }}</span>
+      <span class="ticker-note">{{ t.fireStats.lineNote(fmt(lastFire.annualSpending)) }}</span>
+    </div>
+    <div class="fire-stat">
+      <span class="ticker-label">{{ t.fireStats.successLabel(lastRunParams.years) }}</span>
+      <span class="ticker-value" :class="lastFire.overallSuccessRate >= 0.7 ? 'teal' : 'brick'">{{ pct(lastFire.overallSuccessRate) }}</span>
+      <span class="ticker-note">{{ t.fireStats.successNote }}</span>
+    </div>
+    <div class="fire-stat">
+      <span class="ticker-label">{{ t.fireStats.medianYearLabel }}</span>
+      <span class="ticker-value teal">{{ lastFire.medianYearToFire !== null ? t.fireStats.yearsValue(lastFire.medianYearToFire) : t.fireStats.notReached }}</span>
+      <span class="ticker-note">{{ lastFire.medianYearToFire !== null ? t.fireStats.medianYearNoteReached : t.fireStats.medianYearNoteNotReached }}</span>
+    </div>
+  </div>
+
+  <!-- Print-only data table: appears only in the print stylesheet, giving the
+       first printed page a concrete numeric record (parameters + year-by-year
+       results) to sit alongside the summary text above. Hidden on screen so
+       it doesn't duplicate the interactive chart/table experience there. -->
+  <table class="print-only-table" v-if="hasRunOnce">
+    <caption>{{ t.printTable.caption }}</caption>
+    <thead>
+      <tr><th colspan="2">{{ t.printTable.parameter }}</th><th colspan="3">{{ t.printTable.value }}</th></tr>
+    </thead>
+    <tbody>
+      <tr><td colspan="2">{{ t.params.years.name }}</td><td colspan="3">{{ lastRunParams.years }}</td></tr>
+      <tr><td colspan="2">{{ t.printTable.initialCapital }}</td><td colspan="3">{{ fmt(lastRunParams.initialCapital) }}</td></tr>
+      <tr><td colspan="2">{{ t.printTable.simulations }}</td><td colspan="3">{{ lastRunParams.simulations.toLocaleString() }}</td></tr>
+      <tr><td colspan="2">{{ t.printTable.mu }}</td><td colspan="3">{{ pct(lastRunParams.mu) }}</td></tr>
+      <tr><td colspan="2">{{ t.printTable.sigma }}</td><td colspan="3">{{ pct(lastRunParams.sigma) }}</td></tr>
+      <tr><td colspan="2">{{ t.params.spending.name }}</td><td colspan="3">{{ fmt(lastRunParams.annualSpending) }}</td></tr>
+    </tbody>
+    <thead>
+      <tr><th>{{ t.printTable.year }}</th><th>P10</th><th>P50</th><th>P90</th><th>{{ t.printTable.fireSuccessRate }}</th></tr>
+    </thead>
+    <tbody>
+      <tr v-for="pt in lastSeries" :key="pt.year">
+        <td>{{ pt.year }}</td>
+        <td>{{ fmt(pt.p10) }}</td>
+        <td>{{ fmt(pt.p50) }}</td>
+        <td>{{ fmt(pt.p90) }}</td>
+        <td>{{ lastFire ? pct(lastFire.successRateByYear[pt.year].successRate) : '—' }}</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="grid">
+
+    <!-- Controls -->
+    <section class="panel" aria-label="Simulation parameters">
+      <p class="panel-title">{{ t.panel.paramsTitle }}</p>
+
+      <div class="preset-row">
+        <label for="preset-select">
+          {{ t.preset.label }}
+          <span class="info-icon" tabindex="0" :title="t.preset.tooltip">?</span>
+        </label>
+        <select id="preset-select" class="preset-select" v-model="presetChoice">
+          <option value="custom">{{ t.preset.custom }}</option>
+          <optgroup :label="t.preset.groupRisk">
+            <option v-for="p in presetsByGroup.risk" :key="p.key" :value="p.key">{{ t.presetLabels[p.key] }}</option>
+          </optgroup>
+          <optgroup :label="t.preset.groupAlloc">
+            <option v-for="p in presetsByGroup.allocation" :key="p.key" :value="p.key">
+              {{ t.presetLabels[p.key] }} — μ {{ pct(p.mu) }}, σ {{ pct(p.sigma) }}
+            </option>
+          </optgroup>
+        </select>
+      </div>
+
+      <div class="param">
+        <div class="param-head">
+          <span class="param-name">
+            {{ t.params.years.name }}
+            <span class="info-icon" tabindex="0" :title="t.params.years.tooltip">?</span>
+          </span>
+          <span class="param-value">{{ t.params.years.value(form.years) }}</span>
+        </div>
+        <input type="range" min="1" max="50" step="1" v-model.number="form.years" aria-label="Time horizon in years">
+      </div>
+
+      <div class="param">
+        <div class="param-head">
+          <span class="param-name">
+            {{ t.params.mu.name }}
+            <span class="info-icon" tabindex="0" :title="t.params.mu.tooltip">?</span>
+          </span>
+          <span class="param-value">{{ pct(form.mu) }}</span>
+        </div>
+        <input type="range" min="-0.10" max="0.25" step="0.005" v-model.number="form.mu" aria-label="Expected annual return">
+      </div>
+
+      <div class="param">
+        <div class="param-head">
+          <span class="param-name">
+            {{ t.params.sigma.name }}
+            <span class="info-icon" tabindex="0" :title="t.params.sigma.tooltip">?</span>
+          </span>
+          <span class="param-value">{{ pct(form.sigma) }}</span>
+        </div>
+        <input type="range" min="0.02" max="0.60" step="0.005" v-model.number="form.sigma" aria-label="Annual volatility">
+      </div>
+
+      <div class="param">
+        <div class="param-head">
+          <span class="param-name">
+            {{ t.params.simulations.name }}
+            <span class="info-icon" tabindex="0" :title="t.params.simulations.tooltip">?</span>
+          </span>
+          <span class="param-value">{{ form.simulations.toLocaleString() }}</span>
+        </div>
+        <input type="range" min="200" max="20000" step="100" v-model.number="form.simulations" :max="maxSimulations" aria-label="Number of simulated paths">
+        <div class="param-range-note">
+          <span>200</span>
+          <span>{{ t.params.simulations.maxNote(maxSimulations.toLocaleString(), form.years) }}</span>
+        </div>
+      </div>
+
+      <div class="field-row">
+        <div class="field">
+          <label for="capital-input">
+            {{ t.params.capital.name }}
+            <span class="info-icon" tabindex="0" :title="t.params.capital.tooltip">?</span>
+          </label>
+          <input id="capital-input" type="number" min="1" step="1000" v-model.number="form.initialCapital">
+        </div>
+      </div>
+
+      <div class="field-row">
+        <div class="field">
+          <label for="spending-input">
+            {{ t.params.spending.name }}
+            <span class="info-icon" tabindex="0" :title="t.params.spending.tooltip">?</span>
+          </label>
+          <input id="spending-input" type="number" min="1" step="1000" v-model.number="form.annualSpending">
+        </div>
+      </div>
+
+      <button
+        class="run-btn"
+        @click="runSimulation"
+        :disabled="loading"
+        :aria-busy="loading">
+        {{ loading ? t.buttons.simulating : (isStale ? t.buttons.run : t.buttons.rerun) }}
+      </button>
+      <p class="stale-note">{{ isStale && !loading ? t.buttons.staleNote : '' }}</p>
+
+      <!-- Parameter glossary: a persistent, plain-language reference for every
+           input above — complements the hover tooltips, which aren't always
+           discoverable (especially on touch devices). -->
+      <details class="glossary-box">
+        <summary>{{ t.glossary.summary }}</summary>
+        <ul class="glossary-list">
+          <li v-for="item in t.glossary.items" :key="item.term">
+            <span class="glossary-term">{{ item.term }}</span>{{ item.text }}
+          </li>
+        </ul>
+      </details>
+
+      <!-- Reproducibility: every run is seeded, and the seed (plus all inputs)
+           round-trips through the URL, so a shared link reproduces the exact
+           same random draws — not just the same parameters. -->
+      <div class="seed-row">
+        <label for="seed-input">
+          {{ t.seed.label }}
+          <span class="info-icon" tabindex="0" :title="t.seed.tooltip">?</span>
+        </label>
+        <input id="seed-input" type="text" v-model="seedInput" :placeholder="t.seed.placeholder">
+      </div>
+      <p v-if="currentSeed" class="seed-readout">
+        {{ t.seed.lastRun }} <span class="seed-value">{{ currentSeed }}</span>
+      </p>
+      <button class="secondary-btn" @click="copyShareLink" :disabled="!hasRunOnce">
+        {{ linkCopied ? t.buttons.linkCopied : t.buttons.copyLink }}
+      </button>
+
+      <button
+        class="secondary-btn"
+        :class="{ active: !!pinnedResult }"
+        @click="togglePin"
+        :disabled="!hasRunOnce">
+        {{ pinnedResult ? t.buttons.clearPin : t.buttons.pin }}
+      </button>
+
+      <button
+        class="secondary-btn"
+        @click="rewind"
+        :disabled="!canRewind"
+        :title="canRewind ? t.buttons.rewindTitleActive : t.buttons.rewindTitleInactive">
+        {{ t.buttons.rewind }}
+      </button>
+
+      <!-- Formula transparency: collapsed by default so it doesn't compete
+           with the controls, but available for anyone who wants the rigor. -->
+      <details class="formula-box">
+        <summary>{{ t.formula.summary }}</summary>
+        <div class="formula-body">
+          <p>{{ t.formula.intro }}</p>
+          <div class="formula-eq">S(t) = S₀ · exp[ (μ − ½σ²)·t + σ·W(t) ]</div>
+          <dl>
+            <dt>S₀</dt><dd>{{ t.formula.defS0 }}</dd>
+            <dt>μ</dt><dd>{{ t.formula.defMu }}</dd>
+            <dt>σ</dt><dd>{{ t.formula.defSigma }}</dd>
+            <dt>W(t)</dt><dd>{{ t.formula.defW }}</dd>
+          </dl>
+          <p>{{ t.formula.outro }}</p>
+        </div>
+      </details>
+    </section>
+
+    <!-- Chart -->
+    <section class="panel chart-panel" aria-label="Simulation results">
+      <div class="chart-meta">
+        <p class="panel-title" style="margin:0; flex:1;">{{ t.chart.resultsTitle }}</p>
+        <div class="legend-inline">
+          <span><i class="dot" style="background:#4FA88D"></i>P90</span>
+          <span><i class="dot" style="background:#D4A24C"></i>P50</span>
+          <span><i class="dot" style="background:#C1554A"></i>P10</span>
+          <span v-if="pinnedResult"><i class="dot" style="background:rgba(139,146,165,0.6)"></i>{{ t.chart.pinnedLabel }}: {{ pinnedResult.label }}</span>
+        </div>
+      </div>
+
+      <div v-if="completionMessage" class="completion-banner no-print" role="status">✓ {{ completionMessage }}</div>
+      <div v-if="errorMessage" class="error-banner" role="alert">{{ errorMessage }}</div>
+
+      <div class="canvas-wrap">
+        <div v-if="!hasRunOnce && !loading" class="empty-state">
+          {{ t.chart.emptyState }}
+        </div>
+        <canvas
+          v-show="hasRunOnce"
+          id="mcChart"
+          role="img"
+          aria-label="Line chart of simulated portfolio value over time, showing 10th, 50th and 90th percentile outcomes">
+        </canvas>
+        <div v-if="loading" class="overlay-loading">{{ t.chart.runningLabel(form.simulations.toLocaleString()) }}</div>
+      </div>
+
+      <!-- Final-value distribution: complements the path chart by showing the
+           spread of outcomes at the final year, rather than just three lines. -->
+      <div class="histogram-section" v-if="hasRunOnce">
+        <div class="histogram-head">
+          <span class="histogram-title">{{ t.histogram.title }}</span>
+        </div>
+        <p class="histogram-note">
+          {{ t.histogram.note(lastRunParams?.simulations?.toLocaleString(), lastRunParams?.years) }}
+        </p>
+        <div class="histogram-canvas-wrap">
+          <canvas id="mcHistogram" role="img" aria-label="Histogram of simulated portfolio values at the final year"></canvas>
+        </div>
+      </div>
+
+      <!-- FIRE analysis: reframes the same simulation around "when does this
+           portfolio cross the line that supports my planned spending" rather
+           than just showing wealth over time. -->
+      <div class="fire-section" v-if="lastFire">
+        <div class="histogram-head">
+          <span class="histogram-title">{{ t.fireSection.title }}</span>
+          <span class="info-icon" tabindex="0" :title="t.fireSection.tooltip">?</span>
+        </div>
+
+        <div class="histogram-canvas-wrap" style="height: 200px; margin-top: 14px;">
+          <canvas id="mcFireChart" role="img" aria-label="Line chart of the percentage of simulated paths that have reached the FIRE line by each year"></canvas>
+        </div>
+
+        <!-- The "parachute": a live what-if layer on top of the last run, using
+             the SAME seed so the comparison isolates the effect of the change
+             itself rather than new random noise. -->
+        <div class="parachute-box">
+          <p class="parachute-title">
+            {{ t.whatIf.title }}
+            <span class="info-icon" tabindex="0" :title="t.whatIf.tooltip">?</span>
+          </p>
+
+          <div class="param">
+            <div class="param-head">
+              <span class="param-name">{{ t.whatIf.spendLessLabel }}</span>
+              <span class="param-value">−{{ parachuteSpendCut }}%</span>
+            </div>
+            <input type="range" min="0" max="50" step="5" v-model.number="parachuteSpendCut" aria-label="Percent reduction in annual spending">
+          </div>
+
+          <div class="param">
+            <div class="param-head">
+              <span class="param-name">{{ t.whatIf.headStartLabel }}</span>
+              <span class="param-value">+{{ parachuteHeadStart }} {{ t.whatIf.yrShort }}</span>
+            </div>
+            <input type="range" min="0" max="5" step="1" v-model.number="parachuteHeadStart" aria-label="Extra years of head start">
+          </div>
+
+          <p v-if="parachuteError" class="parachute-error">{{ parachuteError }}</p>
+          <p v-else-if="parachuteFire" class="parachute-delta">
+            {{ t.whatIf.resultPrefix }} <strong>{{ pct(parachuteFire.overallSuccessRate) }}</strong> {{ t.whatIf.resultSuccessRate }}
+            (<span :class="parachuteDelta >= 0 ? 'teal' : 'brick'">{{ parachuteDelta >= 0 ? '+' : '' }}{{ (parachuteDelta * 100).toFixed(1) }} {{ t.whatIf.pts }}</span>
+            {{ t.whatIf.vsBaseline }}
+            <strong>{{ parachuteFire.medianYearToFire !== null ? t.fireStats.yearsValue(parachuteFire.medianYearToFire) : t.fireStats.notReached }}</strong>.
+          </p>
+        </div>
+      </div>
+    </section>
+
+  </div>
+
+  <footer>
+    <div class="footer-actions no-print">
+      <button class="csv-btn" @click="downloadCsv" :disabled="!hasRunOnce">
+        {{ t.footer.csvBtn }}
+      </button>
+      <button class="print-btn" @click="printResults" :disabled="!hasRunOnce" style="margin-left: 10px;">
+        {{ t.footer.printBtn }}
+      </button>
+    </div>
+    <p class="footer-note">{{ t.footer.computedNote }}</p>
+    <p class="disclaimer">{{ t.footer.disclaimer }}</p>
+  </footer>
+</div>
+
+<script>
+const { createApp, reactive, ref, computed, watch, onMounted, onBeforeUnmount } = Vue;
+
+// Preset scenarios shown in the dropdown. 'custom' is a sentinel, not a real preset —
+// it's what the select shows whenever mu/sigma don't match one of the entries below.
+//
+// Two families of presets:
+// 1. Risk-tolerance presets (conservative/balanced/aggressive) — hand-picked mu/sigma.
+// 2. Asset-allocation presets — mu/sigma are DERIVED from blending two asset classes
+//    (stocks, bonds) at a given weight, using standard portfolio math rather than
+//    picked by hand. This is what lets "60/40 stocks/bonds" mean something concrete.
+const ASSET_CLASSES = {
+  stocks: { mu: 0.10, sigma: 0.18 },
+  bonds:  { mu: 0.03, sigma: 0.06 }
+};
+// Assumed long-run correlation between stock and bond returns. This is a simplifying
+// assumption (real correlation varies over time and by regime) — it only affects how
+// much diversification benefit the blended sigma gets credit for.
+const STOCK_BOND_CORRELATION = 0.10;
+
+function blendAssetStats(stockWeight) {
+  const bondWeight = 1 - stockWeight;
+  const mu = stockWeight * ASSET_CLASSES.stocks.mu + bondWeight * ASSET_CLASSES.bonds.mu;
+  const variance =
+    (stockWeight ** 2) * (ASSET_CLASSES.stocks.sigma ** 2) +
+    (bondWeight ** 2) * (ASSET_CLASSES.bonds.sigma ** 2) +
+    2 * stockWeight * bondWeight * STOCK_BOND_CORRELATION * ASSET_CLASSES.stocks.sigma * ASSET_CLASSES.bonds.sigma;
+  return { mu, sigma: Math.sqrt(variance) };
+}
+
+const PRESETS = [
+  { key: 'conservative', group: 'risk', label: 'Conservative — low return, low volatility', mu: 0.04, sigma: 0.08 },
+  { key: 'balanced',     group: 'risk', label: 'Balanced — moderate return, moderate volatility', mu: 0.07, sigma: 0.22 },
+  { key: 'aggressive',   group: 'risk', label: 'Aggressive — high return, high volatility', mu: 0.11, sigma: 0.35 },
+  { key: 'allbonds',     group: 'allocation', label: 'All-Bonds (100% bonds)', ...blendAssetStats(0) },
+  { key: 'sixtyforty',   group: 'allocation', label: '60/40 Stocks/Bonds', ...blendAssetStats(0.6) },
+  { key: 'allequity',    group: 'allocation', label: 'All-Equity (100% stocks)', ...blendAssetStats(1) }
+];
+
+// ---------------------------------------------------------------------------
+// i18n — every user-facing string lives here, keyed by language code. Plain
+// strings are shown as-is; entries defined as functions take the dynamic
+// value(s) they need (e.g. a year count) and return the interpolated string,
+// since Vue's mustache syntax can't do string interpolation on its own.
+// ---------------------------------------------------------------------------
+const LANG_OPTIONS = [
+  { code: 'en', label: 'English' },
+  { code: 'zh', label: '中文' }
+];
+
+const I18N = {
+  en: {
+    header: {
+      eyebrow: 'Monte Carlo · Geometric Brownian Motion',
+      title: 'Portfolio Outcome Simulator',
+      langLabel: 'Language',
+      subhead: (sims, years) => `Set your assumptions, then run ${sims} simulated paths to see the range of likely outcomes over ${years} years.`
+    },
+    ticker: {
+      medianLabel: 'Expected value (median)',
+      medianNote: (years) => `at year ${years}`,
+      cagrLabel: 'Implied CAGR',
+      cagrNote: 'annual drift assumption',
+      lossLabel: 'Est. chance of a loss',
+      lossNote: 'below initial capital',
+      statusLabel: 'Simulation status',
+      statusUpToDate: 'Up to date',
+      statusNotRun: 'Not run yet'
+    },
+    summary: {
+      intro: 'Under the assumptions from your last run, this portfolio has an estimated',
+      gainProbMid: 'probability of ending above its initial capital within',
+      yearsMid: 'years, and a median projected value of',
+      tail: (n) => `. This is the model's analytical probability under Geometric Brownian Motion, not just a count across the ${n} sampled paths.`,
+      placeholder: 'Run a simulation to see a plain-language summary of the results here.'
+    },
+    fireStats: {
+      lineLabel: 'FIRE line',
+      lineNote: (spend) => `to sustain ${spend}/yr at 4%`,
+      successLabel: (years) => `Success rate by year ${years}`,
+      successNote: 'of simulated paths reached the FIRE line',
+      medianYearLabel: 'Median year to FIRE',
+      yearsValue: (y) => `${y} yrs`,
+      notReached: 'not reached',
+      medianYearNoteReached: 'when half of paths had crossed the line',
+      medianYearNoteNotReached: 'fewer than half of paths cross it in this horizon'
+    },
+    printTable: {
+      caption: 'Simulation Parameters & Year-by-Year Results',
+      parameter: 'Parameter',
+      value: 'Value',
+      initialCapital: 'Initial Capital',
+      simulations: 'Simulations',
+      mu: 'Expected Return (μ)',
+      sigma: 'Volatility (σ)',
+      year: 'Year',
+      fireSuccessRate: 'FIRE Success Rate'
+    },
+    panel: { paramsTitle: 'Parameters' },
+    preset: {
+      label: 'Scenario preset',
+      tooltip: 'Asset-allocation presets derive mu/sigma from blending stock (~10% return, 18% volatility) and bond (~3% return, 6% volatility) assumptions using standard portfolio math, with an assumed 0.10 stock-bond correlation.',
+      custom: 'Custom',
+      groupRisk: 'By risk tolerance',
+      groupAlloc: 'By asset allocation (auto-calculated)'
+    },
+    presetLabels: {
+      conservative: 'Conservative — low return, low volatility',
+      balanced: 'Balanced — moderate return, moderate volatility',
+      aggressive: 'Aggressive — high return, high volatility',
+      allbonds: 'All-Bonds (100% bonds)',
+      sixtyforty: '60/40 Stocks/Bonds',
+      allequity: 'All-Equity (100% stocks)'
+    },
+    params: {
+      years: {
+        name: 'Time horizon',
+        tooltip: 'How many years into the future the simulation projects. Longer horizons give volatility more time to compound.',
+        value: (y) => `${y} yrs`
+      },
+      mu: {
+        name: 'Expected annual return (μ)',
+        tooltip: "The average annual return you expect the portfolio to earn, before accounting for volatility. Also called the 'drift'."
+      },
+      sigma: {
+        name: 'Volatility (σ)',
+        tooltip: "The annualized standard deviation of returns — how much the portfolio's value tends to swing year to year. Higher volatility means a wider range of possible outcomes."
+      },
+      simulations: {
+        name: 'Simulated paths',
+        tooltip: 'How many random price paths to simulate. More paths give smoother, more reliable percentile estimates but take longer to compute. The maximum is lowered automatically for longer time horizons to keep runs fast.',
+        maxNote: (max, years) => `max ${max} at ${years}y`
+      },
+      capital: {
+        name: 'Initial capital',
+        tooltip: 'The starting portfolio value the simulation compounds forward from.'
+      },
+      spending: {
+        name: 'Annual spending in retirement',
+        tooltip: "Your planned yearly spending once retired. The FIRE line is this divided by 4% (the '4% rule'): the portfolio value considered enough to sustain that spending indefinitely."
+      }
+    },
+    buttons: {
+      run: 'Run simulation',
+      rerun: 'Re-run simulation',
+      simulating: 'Simulating…',
+      staleNote: 'Parameters changed — chart reflects the last run.',
+      copyLink: '🔗 Copy shareable link',
+      linkCopied: 'Link copied!',
+      pin: 'Pin current result to compare',
+      clearPin: 'Clear pinned result',
+      rewind: '⏪ Rewind to previous result',
+      rewindTitleActive: 'Restore the previous simulation result',
+      rewindTitleInactive: 'No previous result to rewind to yet'
+    },
+    seed: {
+      label: 'Seed (optional)',
+      tooltip: 'Leave blank for a random seed. Set a specific value to force this run to reproduce a previous one exactly.',
+      placeholder: 'random',
+      lastRun: 'Last run seed:'
+    },
+    glossary: {
+      summary: 'Parameter glossary',
+      items: [
+        { term: 'Time horizon', text: ' — how many years into the future the simulation projects.' },
+        { term: 'Expected annual return (μ)', text: ' — the average annual return you expect the portfolio to earn, before volatility. Also called the "drift".' },
+        { term: 'Volatility (σ)', text: " — the annualized standard deviation of returns: how much the portfolio's value tends to swing year to year." },
+        { term: 'Simulated paths', text: ' — how many random price paths are simulated. More paths give smoother percentile estimates but take longer to compute.' },
+        { term: 'Initial capital', text: ' — the starting portfolio value the simulation compounds forward from.' },
+        { term: 'Annual spending in retirement', text: " — your planned yearly spending once retired, used to derive the FIRE line via the 4% rule." },
+        { term: 'FIRE', text: ' — Financial Independence, Retire Early. The FIRE line is (annual spending ÷ 4%): the portfolio size considered large enough to sustain that spending indefinitely.' },
+        { term: 'Seed', text: ' — the random-number seed behind a run. Reusing the same seed reproduces the exact same simulated paths.' }
+      ]
+    },
+    formula: {
+      summary: 'How this simulation works',
+      intro: 'Each path evolves as Geometric Brownian Motion — the same model behind Black-Scholes and most retirement-projection tools:',
+      defS0: 'initial capital',
+      defMu: 'expected annual return (drift)',
+      defSigma: 'annual volatility',
+      defW: 'a random shock (Brownian motion) drawn fresh for each simulated path',
+      outro: 'Every simulated path draws its own sequence of random shocks, producing a spread of outcomes. The P10/P50/P90 lines are the 10th, 50th, and 90th percentile outcome across all paths at each year, computed by linear interpolation between the nearest ranks.'
+    },
+    chart: {
+      resultsTitle: 'Simulated Outcomes',
+      pinnedLabel: 'Pinned (before)',
+      emptyState: 'Adjust parameters on the left, then run the simulation to see projected outcomes.',
+      runningLabel: (sims) => `Running ${sims} paths…`,
+      yearAxis: (y) => `Year ${y}`
+    },
+    histogram: {
+      title: 'Final-Year Distribution',
+      note: (sims, years) => `Where all ${sims} simulated paths landed at year ${years}.`
+    },
+    fireSection: {
+      title: 'FIRE Analysis',
+      tooltip: "FIRE = Financial Independence, Retire Early. The FIRE line uses the '4% rule': a portfolio of (annual spending ÷ 4%) is considered large enough to sustain that spending indefinitely."
+    },
+    whatIf: {
+      title: 'What if…',
+      tooltip: "These sliders don't change your main simulation — they preview how the FIRE success curve would shift under a different spending level or an earlier start, using the exact same simulated market paths for a fair comparison.",
+      spendLessLabel: '…you spent less in retirement',
+      headStartLabel: '…you started investing earlier',
+      yrShort: 'yr',
+      resultPrefix: 'Under this scenario:',
+      resultSuccessRate: 'success rate',
+      pts: 'pts',
+      vsBaseline: 'vs. baseline), median year to FIRE:',
+      scenarioError: 'Could not compute this scenario.'
+    },
+    footer: {
+      csvBtn: '⭳ Download Simulation Results (CSV)',
+      printBtn: '🖨 Print / Save as PDF',
+      computedNote: 'Computed entirely client-side — no server round-trip. Powered by js/simulation.js.',
+      disclaimer: 'Simulation results are for reference only and do not constitute investment advice. Historical volatility does not represent future performance. This tool models a simplified statistical process and does not account for fees, taxes, inflation, or real-world market behavior.'
+    },
+    messages: {
+      simComplete: (sims, years) => `Simulation complete — ${sims} paths computed across ${years} years.`,
+      rewound: (n) => `Rewound to previous result (${n} more available).`,
+      simFailed: 'Something went wrong while running the simulation.',
+      copyFail: 'Could not copy the link automatically — you can copy it from the address bar.'
+    },
+    csv: {
+      years: 'Years', initialCapital: 'Initial Capital', simulations: 'Simulations',
+      mu: 'Mu (expected annual return)', sigma: 'Sigma (annual volatility)', annualSpending: 'Annual Spending',
+      fireHeader: 'FIRE Analysis,Value', fireLine: 'FIRE Line (4% rule)',
+      successRate: (years) => `Success Rate by Year ${years}`, medianYear: 'Median Year to FIRE', notReached: 'not reached',
+      header: 'Year,P10,P50,P90', headerFire: 'Year,P10,P50,P90,FIRE Success Rate'
+    },
+    datasets: {
+      p90: 'P90 · Optimistic (current)', p50: 'P50 · Median (current)', p10: 'P10 · Downside (current)',
+      pinnedPrefix: 'Pinned (before) ·', baseline: 'Baseline', whatIfLabel: 'What-if',
+      naLabel: 'n/a', pathsWord: 'paths', ofTotal: 'of total', rangeWord: 'Range:', reachedFire: 'of paths had reached FIRE'
+    }
+  },
+  zh: {
+    header: {
+      eyebrow: '蒙特卡洛模拟 · 几何布朗运动',
+      title: '投资组合结果模拟器',
+      langLabel: '语言',
+      subhead: (sims, years) => `设置你的假设条件，运行 ${sims} 条模拟路径，查看未来 ${years} 年可能出现的结果范围。`
+    },
+    ticker: {
+      medianLabel: '预期价值（中位数）',
+      medianNote: (years) => `第 ${years} 年时`,
+      cagrLabel: '隐含年化收益率',
+      cagrNote: '年化漂移假设',
+      lossLabel: '预计亏损概率',
+      lossNote: '低于初始本金',
+      statusLabel: '模拟状态',
+      statusUpToDate: '已是最新',
+      statusNotRun: '尚未运行'
+    },
+    summary: {
+      intro: '根据你上次运行的假设条件，该投资组合估计有',
+      gainProbMid: '的概率在',
+      yearsMid: '年内高于初始本金，预计中位数最终价值为',
+      tail: (n) => `。这是模型基于几何布朗运动得出的解析概率，而不仅仅是对 ${n} 条抽样路径的简单计数。`,
+      placeholder: '运行一次模拟，即可在此查看结果的通俗语言总结。'
+    },
+    fireStats: {
+      lineLabel: 'FIRE 线',
+      lineNote: (spend) => `按 4% 法则支撑每年 ${spend} 的支出`,
+      successLabel: (years) => `第 ${years} 年时的达成率`,
+      successNote: '的模拟路径达到了 FIRE 线',
+      medianYearLabel: '达成 FIRE 的中位年数',
+      yearsValue: (y) => `${y} 年`,
+      notReached: '未达成',
+      medianYearNoteReached: '此时有一半路径已越过该线',
+      medianYearNoteNotReached: '在该时间范围内，不到一半的路径能越过该线'
+    },
+    printTable: {
+      caption: '模拟参数与逐年结果',
+      parameter: '参数',
+      value: '数值',
+      initialCapital: '初始本金',
+      simulations: '模拟次数',
+      mu: '预期收益率 (μ)',
+      sigma: '波动率 (σ)',
+      year: '年份',
+      fireSuccessRate: 'FIRE 达成率'
+    },
+    panel: { paramsTitle: '参数设置' },
+    preset: {
+      label: '场景预设',
+      tooltip: '资产配置预设通过混合股票（约 10% 收益、18% 波动率）与债券（约 3% 收益、6% 波动率）的假设、并使用标准投资组合数学（假设股债相关系数为 0.10）来推算 μ 和 σ。',
+      custom: '自定义',
+      groupRisk: '按风险偏好',
+      groupAlloc: '按资产配置（自动计算）'
+    },
+    presetLabels: {
+      conservative: '保守型 — 低收益、低波动',
+      balanced: '平衡型 — 中等收益、中等波动',
+      aggressive: '进取型 — 高收益、高波动',
+      allbonds: '全债券（100% 债券）',
+      sixtyforty: '60/40 股债配置',
+      allequity: '全股票（100% 股票）'
+    },
+    params: {
+      years: {
+        name: '时间跨度',
+        tooltip: '模拟向未来推演的年数。跨度越长，波动率有更多时间累积复合效应。',
+        value: (y) => `${y} 年`
+      },
+      mu: {
+        name: '预期年化收益率 (μ)',
+        tooltip: '你预期投资组合在不考虑波动的情况下能获得的平均年化收益，也称为"漂移率"。'
+      },
+      sigma: {
+        name: '波动率 (σ)',
+        tooltip: '收益率的年化标准差 —— 衡量投资组合价值逐年波动的程度。波动率越高，可能出现的结果范围越大。'
+      },
+      simulations: {
+        name: '模拟路径数',
+        tooltip: '模拟的随机价格路径数量。路径越多，百分位数估计越平滑、越可靠，但计算耗时也更长。时间跨度越长，系统会自动降低路径数上限以保持运行速度。',
+        maxNote: (max, years) => `跨度 ${years} 年时上限为 ${max}`
+      },
+      capital: {
+        name: '初始本金',
+        tooltip: '模拟据以向前复利计算的起始投资组合价值。'
+      },
+      spending: {
+        name: '退休后年支出',
+        tooltip: '你计划退休后每年的支出。FIRE 线即该支出除以 4%（"4% 法则"）：被认为足以无限期支撑该支出的投资组合规模。'
+      }
+    },
+    buttons: {
+      run: '运行模拟',
+      rerun: '重新运行模拟',
+      simulating: '模拟中…',
+      staleNote: '参数已更改 —— 当前图表仍反映上一次运行的结果。',
+      copyLink: '🔗 复制可分享链接',
+      linkCopied: '链接已复制！',
+      pin: '固定当前结果以作对比',
+      clearPin: '取消固定结果',
+      rewind: '⏪ 回退到上一次结果',
+      rewindTitleActive: '恢复上一次的模拟结果',
+      rewindTitleInactive: '暂无可回退的历史结果'
+    },
+    seed: {
+      label: '随机种子（可选）',
+      tooltip: '留空则使用随机种子。设置一个具体数值可强制本次运行精确复现之前的结果。',
+      placeholder: '随机',
+      lastRun: '上次运行种子：'
+    },
+    glossary: {
+      summary: '参数说明表',
+      items: [
+        { term: '时间跨度', text: ' —— 模拟向未来推演的年数。' },
+        { term: '预期年化收益率 (μ)', text: ' —— 不考虑波动时，你预期投资组合每年能获得的平均收益，也称"漂移率"。' },
+        { term: '波动率 (σ)', text: ' —— 收益率的年化标准差，即投资组合价值逐年波动的幅度。' },
+        { term: '模拟路径数', text: ' —— 模拟的随机价格路径数量。路径越多，百分位数估计越平滑，但计算耗时也更长。' },
+        { term: '初始本金', text: ' —— 模拟据以向前复利计算的起始投资组合价值。' },
+        { term: '退休后年支出', text: ' —— 你计划退休后的年支出，用于按 4% 法则推算 FIRE 线。' },
+        { term: 'FIRE', text: ' —— 即"财务独立，提前退休"（Financial Independence, Retire Early）。FIRE 线 = 年支出 ÷ 4%，被视为足以无限期支撑该支出的投资组合规模。' },
+        { term: '随机种子', text: ' —— 决定一次运行背后随机数序列的种子值。使用相同种子可精确复现同一组模拟路径。' }
+      ]
+    },
+    formula: {
+      summary: '模拟原理说明',
+      intro: '每条路径都按几何布朗运动演化 —— 这也是 Black-Scholes 期权定价模型及大多数退休规划工具背后所用的模型：',
+      defS0: '初始本金',
+      defMu: '预期年化收益率（漂移率）',
+      defSigma: '年化波动率',
+      defW: '随机扰动项（布朗运动），每条模拟路径都会重新抽取一次',
+      outro: '每条模拟路径都会抽取自己独有的一系列随机扰动，从而产生一系列不同的结果。P10/P50/P90 线分别是每一年所有路径结果中第 10、50、90 百分位的数值，通过在相邻名次之间线性插值计算得出。'
+    },
+    chart: {
+      resultsTitle: '模拟结果',
+      pinnedLabel: '已固定（此前）',
+      emptyState: '在左侧调整参数，然后运行模拟以查看预测结果。',
+      runningLabel: (sims) => `正在运行 ${sims} 条路径…`,
+      yearAxis: (y) => `第 ${y} 年`
+    },
+    histogram: {
+      title: '最终年份分布',
+      note: (sims, years) => `全部 ${sims} 条模拟路径在第 ${years} 年时的落点分布。`
+    },
+    fireSection: {
+      title: 'FIRE 分析',
+      tooltip: 'FIRE 即"财务独立，提前退休"。FIRE 线采用"4% 法则"：年支出除以 4% 得到的投资组合规模，被认为足以无限期支撑该支出。'
+    },
+    whatIf: {
+      title: '假设情形…',
+      tooltip: '这些滑块不会更改你的主模拟 —— 它们会使用与主模拟完全相同的模拟市场路径，预览在不同支出水平或更早开始投资的情况下，FIRE 达成率曲线会如何变化，以确保对比公平。',
+      spendLessLabel: '……你退休后减少了支出',
+      headStartLabel: '……你更早开始了投资',
+      yrShort: '年',
+      resultPrefix: '在此情形下：达成率为',
+      resultSuccessRate: '',
+      pts: '个百分点',
+      vsBaseline: '（相较基线），达成 FIRE 的中位年数：',
+      scenarioError: '无法计算该情形。'
+    },
+    footer: {
+      csvBtn: '⭳ 下载模拟结果（CSV）',
+      printBtn: '🖨 打印 / 保存为 PDF',
+      computedNote: '全部计算均在客户端本地完成 —— 无需服务器往返。由 js/simulation.js 驱动。',
+      disclaimer: '模拟结果仅供参考，不构成投资建议。历史波动率不代表未来表现。本工具建模的是一个简化的统计过程，未考虑费用、税费、通货膨胀或真实市场行为。'
+    },
+    messages: {
+      simComplete: (sims, years) => `模拟完成 —— 已计算 ${sims} 条路径，覆盖 ${years} 年。`,
+      rewound: (n) => `已回退到上一次结果（还有 ${n} 个可用）。`,
+      simFailed: '运行模拟时出现问题。',
+      copyFail: '无法自动复制链接 —— 你可以从地址栏手动复制。'
+    },
+    csv: {
+      years: '年数', initialCapital: '初始本金', simulations: '模拟次数',
+      mu: 'Mu（预期年化收益率）', sigma: 'Sigma（年化波动率）', annualSpending: '年支出',
+      fireHeader: 'FIRE 分析,数值', fireLine: 'FIRE 线（4% 法则）',
+      successRate: (years) => `第 ${years} 年达成率`, medianYear: '达成 FIRE 的中位年数', notReached: '未达成',
+      header: '年份,P10,P50,P90', headerFire: '年份,P10,P50,P90,FIRE 达成率'
+    },
+    datasets: {
+      p90: 'P90 · 乐观情形（当前）', p50: 'P50 · 中位数（当前）', p10: 'P10 · 悲观情形（当前）',
+      pinnedPrefix: '已固定（此前）·', baseline: '基线', whatIfLabel: '假设情形',
+      naLabel: '不适用', pathsWord: '条路径', ofTotal: '占总数', rangeWord: '区间：', reachedFire: '的路径已达到 FIRE 线'
+    }
+  }
+};
+
+createApp({
+  setup() {
+    const lang = ref((navigator.language || 'en').toLowerCase().startsWith('zh') ? 'zh' : 'en');
+    const t = computed(() => I18N[lang.value]);
+
+    const form = reactive({
+      years: 15,
+      initialCapital: 100000,
+      simulations: 1000,
+      mu: 0.07,
+      sigma: 0.22,
+      annualSpending: 40000
+    });
+
+    const loading = ref(false);
+    const errorMessage = ref('');
+    const hasRunOnce = ref(false);
+    const lastRunParams = ref(null);
+    const lastRunAt = ref(null);
+    const lastSeries = ref(null);       // full {year,p10,p50,p90} records from the last run, for CSV + pinning
+    const lastHistogram = ref(null);    // finalValueHistogram bins from the last run, for CSV/rewind reuse
+    const lastFire = ref(null);         // fire object from the last main run (the FIRE baseline)
+    const pinnedResult = ref(null);     // { yearMap: Map<year,p50>, label } snapshot of a previously run result
+
+    // Rewind: a simple undo stack. Each entry is a full snapshot of what was
+    // "current" right before it got replaced by a new run, so rewinding just
+    // pops the stack and re-renders that snapshot as current again.
+    const runHistory = ref([]);
+
+    const completionMessage = ref('');
+    let completionMessageTimeout = null;
+    function showCompletionMessage(text) {
+      completionMessage.value = text;
+      clearTimeout(completionMessageTimeout);
+      completionMessageTimeout = setTimeout(() => { completionMessage.value = ''; }, 4000);
+    }
+    const currentSeed = ref(null);      // the seed that produced the last run — needed to reproduce it
+    const seedInput = ref('');          // optional user-supplied seed to force a specific reproduction
+    const linkCopied = ref(false);
+
+    // "Parachute" what-if sliders: layered on top of the last run without
+    // altering it, always reusing that run's seed for an apples-to-apples comparison.
+    const parachuteSpendCut = ref(0);   // percent reduction in annual spending, 0-50
+    const parachuteHeadStart = ref(0);  // extra years of compounding before "today", 0-5
+    const parachuteFire = ref(null);
+    const parachuteError = ref('');
+    let parachuteDebounceHandle = null;
+
+    let chartInstance = null;
+    let histogramInstance = null;
+    let fireChartInstance = null;
+
+    // Chart.js draws each canvas once at its on-screen size and only redraws
+    // when explicitly told to. Print uses a much narrower page width than a
+    // typical desktop window, but nothing triggers that redraw automatically —
+    // the result is a canvas whose internal bitmap doesn't match its print-time
+    // box, which many browsers render as blank rather than stretched. Calling
+    // .resize() re-measures each chart's container and redraws to fit it.
+    const resizeAllCharts = () => {
+      if (chartInstance) chartInstance.resize();
+      if (histogramInstance) histogramInstance.resize();
+      if (fireChartInstance) fireChartInstance.resize();
+    };
+
+    const currencyFmt = new Intl.NumberFormat('en-US', {
+      style: 'currency', currency: 'USD', maximumFractionDigits: 0
+    });
+    const compactCurrencyFmt = new Intl.NumberFormat('en-US', {
+      style: 'currency', currency: 'USD', notation: 'compact', maximumFractionDigits: 1
+    });
+    const fmt = (v) => currencyFmt.format(v);
+    const fmtCompact = (v) => compactCurrencyFmt.format(v);
+    const pct = (v) => `${(v * 100).toFixed(1)}%`;
+
+    // ---- Closed-form GBM stats (used for both the instant ticker and the
+    //      key-results summary, just evaluated against different parameter sets) ----
+    function normalCdf(z) {
+      return 0.5 * (1 + erf(z / Math.SQRT2));
+    }
+    function erf(x) {
+      // Abramowitz-Stegun approximation — sufficient for a quick UI estimate.
+      const sign = x < 0 ? -1 : 1;
+      x = Math.abs(x);
+      const a1=0.254829592, a2=-0.284496736, a3=1.421413741, a4=-1.453152027, a5=1.061405429, p=0.3275911;
+      const t = 1 / (1 + p * x);
+      const y = 1 - (((((a5*t+a4)*t)+a3)*t+a2)*t+a1) * t * Math.exp(-x*x);
+      return sign * y;
+    }
+    function gbmStats(years, mu, sigma, initialCapital) {
+      const medianEstimate = initialCapital * Math.exp((mu - 0.5 * sigma * sigma) * years);
+      const drift = (mu - 0.5 * sigma * sigma) * years;
+      const z = years > 0 && sigma > 0 ? -drift / (sigma * Math.sqrt(years)) : 0;
+      const lossProb = Math.min(Math.max(normalCdf(z), 0), 1);
+      return { medianEstimate, lossProb };
+    }
+
+    // Instant, client-side readout — recomputed on every slider move, ahead of
+    // the heavier server-side simulation.
+    const instant = computed(() => gbmStats(form.years, form.mu, form.sigma, form.initialCapital));
+
+    // Key-results summary — frozen to the last completed run's parameters so it
+    // always describes exactly what's on the chart, not whatever the sliders
+    // currently say.
+    const summary = computed(() => {
+      if (!lastRunParams.value) return null;
+      const { years, mu, sigma, initialCapital, simulations } = lastRunParams.value;
+      const stats = gbmStats(years, mu, sigma, initialCapital);
+      return {
+        years, simulations,
+        gainProb: 1 - stats.lossProb,
+        medianFinal: stats.medianEstimate
+      };
+    });
+
+    const isStale = computed(() => {
+      if (!lastRunParams.value) return true;
+      return JSON.stringify(lastRunParams.value) !== JSON.stringify(form);
+    });
+
+    const lastRunLabel = computed(() =>
+      lastRunAt.value
+        ? (lang.value === 'zh' ? `上次运行：${lastRunAt.value}` : `last run ${lastRunAt.value}`)
+        : (lang.value === 'zh' ? '尚无运行记录' : 'no runs yet')
+    );
+
+    // ---- Dynamic step-size limit ----
+    // More years x more paths = more total computation, which is what actually
+    // costs render/network time — so the cap on simulations shrinks as the
+    // horizon grows, rather than using a single fixed ceiling for every horizon.
+    const maxSimulations = computed(() => {
+      const budget = 400000; // years * simulations budget
+      const capped = Math.floor(budget / Math.max(form.years, 1));
+      return Math.min(20000, Math.max(200, capped));
+    });
+    watch(() => form.years, () => {
+      if (form.simulations > maxSimulations.value) {
+        form.simulations = maxSimulations.value;
+      }
+    });
+
+    // ---- Presets ----
+    // A computed get/set backs the <select> directly: reading it looks up whether
+    // the current mu/sigma match a known preset (falling back to 'custom'),
+    // writing it applies that preset's mu/sigma to the form.
+    const presetChoice = computed({
+      get() {
+        const match = PRESETS.find(p =>
+          Math.abs(p.mu - form.mu) < 1e-9 && Math.abs(p.sigma - form.sigma) < 1e-9
+        );
+        return match ? match.key : 'custom';
+      },
+      set(key) {
+        const preset = PRESETS.find(p => p.key === key);
+        if (preset) {
+          form.mu = preset.mu;
+          form.sigma = preset.sigma;
+        }
+      }
+    });
+
+    const presetsByGroup = computed(() => ({
+      risk: PRESETS.filter(p => p.group === 'risk'),
+      allocation: PRESETS.filter(p => p.group === 'allocation')
+    }));
+
+    // ---- Simulation run ----
+    // ---- Simulation run ----
+    // Runs entirely on the main thread. A years x simulations loop (worst case
+    // 50 x 20,000 = 1,000,000 iterations of one Math.exp + one Gaussian draw)
+    // completes in well under a second in any modern browser — see the
+    // requestAnimationFrame wrapper below for why we still show a "Simulating…"
+    // state rather than blocking synchronously with no feedback at all.
+    const runSimulation = () => {
+      loading.value = true;
+      errorMessage.value = '';
+      linkCopied.value = false;
+
+      // Yield one frame so Vue actually paints the "Simulating…" button state
+      // before the (synchronous) computation runs — otherwise the browser
+      // would freeze the button's old label for the whole computation.
+      requestAnimationFrame(async () => {
+        try {
+          const result = window.MonteCarloSimulation.runSimulation({
+            years: form.years,
+            initialCapital: form.initialCapital,
+            simulations: form.simulations,
+            mu: form.mu,
+            sigma: form.sigma,
+            annualSpending: form.annualSpending,
+            seed: seedInput.value || undefined
+          });
+
+          // Preserve the outgoing state for "rewind" before overwriting it —
+          // but only if there was a previous completed run to preserve.
+          if (lastRunParams.value) {
+            runHistory.value.push({
+              series: lastSeries.value,
+              histogram: lastHistogram.value,
+              fire: lastFire.value,
+              params: lastRunParams.value,
+              seed: currentSeed.value
+            });
+            if (runHistory.value.length > 20) runHistory.value.shift(); // cap history size
+          }
+
+          lastSeries.value = result.series;
+          lastHistogram.value = result.finalValueHistogram;
+          lastFire.value = result.fire;
+          currentSeed.value = result.seed;
+          hasRunOnce.value = true;
+
+          // Histogram and FIRE sections are behind v-if, so their canvases
+          // don't exist in the DOM until Vue finishes processing the
+          // hasRunOnce/lastFire change above. Without waiting here, the very
+          // first run's getElementById calls below return null and those two
+          // charts silently fail to render — this is what was happening.
+          await Vue.nextTick();
+
+          renderChart(result.series);
+          renderHistogram(result.finalValueHistogram);
+          if (result.fire) {
+            renderFireChart(result.fire);
+          } else if (fireChartInstance) {
+            fireChartInstance.destroy();
+            fireChartInstance = null;
+          }
+
+          lastRunParams.value = { ...form };
+          lastRunAt.value = new Date().toLocaleTimeString();
+          updateShareableUrl();
+
+          // A new baseline invalidates any previous what-if preview.
+          parachuteSpendCut.value = 0;
+          parachuteHeadStart.value = 0;
+          parachuteFire.value = null;
+          parachuteError.value = '';
+
+          showCompletionMessage(t.value.messages.simComplete(form.simulations.toLocaleString(), form.years));
+        } catch (error) {
+          console.error('Simulation failed:', error);
+          errorMessage.value = error.message || t.value.messages.simFailed;
+        } finally {
+          loading.value = false;
+        }
+      });
+    };
+
+    const canRewind = computed(() => runHistory.value.length > 0);
+
+    // ---- Rewind ----
+    // Restores the most recent entry from the undo stack as "current" and
+    // re-renders all three charts from it — the mirror image of what
+    // runSimulation does when it pushes the outgoing state onto that stack.
+    const rewind = async () => {
+      if (runHistory.value.length === 0) return;
+      const previous = runHistory.value.pop();
+
+      lastSeries.value = previous.series;
+      lastHistogram.value = previous.histogram;
+      lastFire.value = previous.fire;
+      lastRunParams.value = previous.params;
+      currentSeed.value = previous.seed;
+      lastRunAt.value = `${new Date().toLocaleTimeString()} (rewound)`;
+
+      // Reflect the restored parameters back into the sliders too, so the
+      // controls match what's now on screen rather than looking "stale".
+      form.years = previous.params.years;
+      form.initialCapital = previous.params.initialCapital;
+      form.simulations = previous.params.simulations;
+      form.mu = previous.params.mu;
+      form.sigma = previous.params.sigma;
+      form.annualSpending = previous.params.annualSpending;
+
+      await Vue.nextTick();
+      renderChart(previous.series);
+      renderHistogram(previous.histogram);
+      if (previous.fire) {
+        renderFireChart(previous.fire);
+      } else if (fireChartInstance) {
+        fireChartInstance.destroy();
+        fireChartInstance = null;
+      }
+
+      updateShareableUrl();
+      parachuteSpendCut.value = 0;
+      parachuteHeadStart.value = 0;
+      parachuteFire.value = null;
+      parachuteError.value = '';
+
+      showCompletionMessage(t.value.messages.rewound(runHistory.value.length));
+    };
+
+    // ---- Shareable / reproducible links ----
+    // Encodes every input plus the resolved seed into the URL, so opening the
+    // same link reproduces the exact same random draws and therefore the
+    // exact same chart — not just the same parameters.
+    const shareUrl = computed(() => {
+      if (!lastRunParams.value || !currentSeed.value) return '';
+      const p = lastRunParams.value;
+      const params = new URLSearchParams({
+        years: p.years,
+        initialCapital: p.initialCapital,
+        simulations: p.simulations,
+        mu: p.mu,
+        sigma: p.sigma,
+        annualSpending: p.annualSpending,
+        seed: currentSeed.value
+      });
+      return `${window.location.origin}${window.location.pathname}?${params.toString()}`;
+    });
+
+    function updateShareableUrl() {
+      if (!shareUrl.value) return;
+      window.history.replaceState(null, '', shareUrl.value);
+    }
+
+    const copyShareLink = async () => {
+      if (!shareUrl.value) return;
+      try {
+        await navigator.clipboard.writeText(shareUrl.value);
+        linkCopied.value = true;
+        setTimeout(() => { linkCopied.value = false; }, 2000);
+      } catch (error) {
+        console.error('Clipboard write failed:', error);
+        errorMessage.value = t.value.messages.copyFail;
+      }
+    };
+
+    // On load, check whether we were opened via a shareable link (i.e. the
+    // URL already has years/mu/sigma/... and a seed) and if so, pre-fill the
+    // form and immediately reproduce that exact run.
+    onMounted(() => {
+      document.documentElement.lang = lang.value;
+      const urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.has('seed') && urlParams.has('years')) {
+        form.years = Number(urlParams.get('years'));
+        form.initialCapital = Number(urlParams.get('initialCapital'));
+        form.simulations = Number(urlParams.get('simulations'));
+        form.mu = Number(urlParams.get('mu'));
+        form.sigma = Number(urlParams.get('sigma'));
+        if (urlParams.has('annualSpending')) form.annualSpending = Number(urlParams.get('annualSpending'));
+        seedInput.value = urlParams.get('seed');
+        runSimulation();
+      }
+
+      // ---- Print/PDF chart-resize fix ----
+      // Three triggers registered for cross-browser reliability: beforeprint/
+      // afterprint fire everywhere but with inconsistent timing relative to
+      // when print layout is actually applied; matchMedia('print') catches the
+      // same transition more reliably in some browsers (notably Firefox). A
+      // short delay gives the browser a moment to finish applying the print
+      // stylesheet's layout before Chart.js re-measures the container.
+      const handlePrintTransition = () => setTimeout(resizeAllCharts, 60);
+
+      window.addEventListener('beforeprint', handlePrintTransition);
+      window.addEventListener('afterprint', handlePrintTransition);
+      let printMql = null;
+      if (window.matchMedia) {
+        printMql = window.matchMedia('print');
+        printMql.addEventListener('change', handlePrintTransition);
+      }
+
+      onBeforeUnmount(() => {
+        window.removeEventListener('beforeprint', handlePrintTransition);
+        window.removeEventListener('afterprint', handlePrintTransition);
+        if (printMql) printMql.removeEventListener('change', handlePrintTransition);
+      });
+    });
+
+    // ---- Pin / compare ----
+    const togglePin = () => {
+      if (pinnedResult.value) {
+        pinnedResult.value = null;
+      } else if (lastSeries.value && lastRunParams.value) {
+        const yearMap = new Map(lastSeries.value.map(pt => [pt.year, pt.p50]));
+        const { mu, sigma, years } = lastRunParams.value;
+        pinnedResult.value = { yearMap, label: `μ=${pct(mu)}, σ=${pct(sigma)}, ${years}y` };
+      }
+      // Re-render immediately so pinning/unpinning is visible right away,
+      // even before the next simulation run.
+      if (lastSeries.value) renderChart(lastSeries.value);
+    };
+
+    // ---- Chart rendering ----
+    const renderChart = (series) => {
+      const canvas = document.getElementById('mcChart');
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+      if (chartInstance) chartInstance.destroy();
+
+      const labels = series.map(pt => t.value.chart.yearAxis(pt.year));
+      const p10 = series.map(pt => pt.p10);
+      const p50 = series.map(pt => pt.p50);
+      const p90 = series.map(pt => pt.p90);
+
+      const datasets = [
+        { label: t.value.datasets.p90, data: p90, borderColor: '#4FA88D', borderDash: [5,5], fill: false, pointRadius: 0 },
+        { label: t.value.datasets.p50, data: p50, borderColor: '#D4A24C', borderWidth: 3, backgroundColor: 'rgba(212,162,76,0.08)', fill: true, pointRadius: 0 },
+        { label: t.value.datasets.p10, data: p10, borderColor: '#C1554A', borderWidth: 2, fill: false, pointRadius: 0 }
+      ];
+
+      // Align the pinned result's p50 line onto the current x-axis by matching
+      // year numbers, since a pinned run might have a different horizon. Years
+      // with no overlapping pinned data are left as null (a gap in the line).
+      // Styled deliberately muted (low-opacity gray, loose dash) so it reads as
+      // "before" against the current run's saturated brand colors ("after").
+      if (pinnedResult.value) {
+        const pinnedData = series.map(pt => pinnedResult.value.yearMap.has(pt.year)
+          ? pinnedResult.value.yearMap.get(pt.year)
+          : null);
+        datasets.push({
+          label: `${t.value.datasets.pinnedPrefix} ${pinnedResult.value.label}`,
+          data: pinnedData,
+          borderColor: 'rgba(139,146,165,0.45)',
+          borderDash: [3,4],
+          borderWidth: 2,
+          fill: false,
+          pointRadius: 0
+        });
+      }
+
+      chartInstance = new Chart(ctx, {
+        type: 'line',
+        data: { labels, datasets },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          interaction: { mode: 'index', intersect: false },
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              callbacks: {
+                label: (context) => `${context.dataset.label}: ${context.parsed.y == null ? t.value.datasets.naLabel : fmt(context.parsed.y)}`
+              }
+            }
+          },
+          scales: {
+            x: { grid: { color: '#232838' }, ticks: { color: '#8B92A5', font: { family: 'IBM Plex Mono', size: 10 } } },
+            y: {
+              grid: { color: '#232838' },
+              // Compact units on the axis (e.g. $1.2M) so large initial-capital
+              // values don't force wide left-margin labels; tooltips (above)
+              // still show the exact figure on hover.
+              ticks: { color: '#8B92A5', font: { family: 'IBM Plex Mono', size: 10 }, callback: (v) => fmtCompact(v) }
+            }
+          }
+        }
+      });
+    };
+
+    const renderHistogram = (bins) => {
+      const canvas = document.getElementById('mcHistogram');
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+      if (histogramInstance) histogramInstance.destroy();
+
+      const totalPaths = bins.reduce((sum, b) => sum + b.count, 0);
+      const labels = bins.map(b => `${fmtCompact(b.rangeStart)}–${fmtCompact(b.rangeEnd)}`);
+      const counts = bins.map(b => b.count);
+
+      histogramInstance = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels,
+          datasets: [{ data: counts, backgroundColor: 'rgba(79,168,141,0.55)', borderRadius: 2 }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              callbacks: {
+                // Full precision range + share of total, shown only on hover —
+                // the compact axis label is just for orientation, not the exact figure.
+                title: (items) => `${t.value.datasets.rangeWord} ${fmt(bins[items[0].dataIndex].rangeStart)} – ${fmt(bins[items[0].dataIndex].rangeEnd)}`,
+                label: (context) => {
+                  const share = totalPaths > 0 ? (context.parsed.y / totalPaths * 100).toFixed(1) : '0.0';
+                  return `${context.parsed.y.toLocaleString()} ${t.value.datasets.pathsWord} (${share}% ${t.value.datasets.ofTotal})`;
+                }
+              }
+            }
+          },
+          scales: {
+            x: {
+              grid: { display: false },
+              ticks: {
+                color: '#8B92A5',
+                font: { family: 'IBM Plex Mono', size: 9 },
+                // Thin the labels out instead of forcing all 20 onto one axis —
+                // autoSkip + maxTicksLimit lets Chart.js pick an even subset,
+                // and the exact range for any bar is still one hover away.
+                autoSkip: true,
+                maxTicksLimit: 7,
+                maxRotation: 0,
+                minRotation: 0
+              }
+            },
+            y: { grid: { color: '#232838' }, ticks: { color: '#8B92A5', font: { family: 'IBM Plex Mono', size: 10 } } }
+          }
+        }
+      });
+    };
+
+    const renderFireChart = (fire, comparisonFire) => {
+      const canvas = document.getElementById('mcFireChart');
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+      if (fireChartInstance) fireChartInstance.destroy();
+
+      const labels = fire.successRateByYear.map(pt => t.value.chart.yearAxis(pt.year));
+      const baselineData = fire.successRateByYear.map(pt => pt.successRate * 100);
+
+      const datasets = [
+        { label: t.value.datasets.baseline, data: baselineData, borderColor: '#D4A24C', borderWidth: 3, backgroundColor: 'rgba(212,162,76,0.08)', fill: true, pointRadius: 0 }
+      ];
+
+      if (comparisonFire) {
+        const comparisonData = comparisonFire.successRateByYear.map(pt => pt.successRate * 100);
+        datasets.push({
+          label: t.value.datasets.whatIfLabel,
+          data: comparisonData,
+          borderColor: '#4FA88D',
+          borderWidth: 3,
+          borderDash: [4,3],
+          fill: false,
+          pointRadius: 0
+        });
+      }
+
+      fireChartInstance = new Chart(ctx, {
+        type: 'line',
+        data: { labels, datasets },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          interaction: { mode: 'index', intersect: false },
+          plugins: {
+            legend: { display: comparisonFire ? true : false, labels: { color: '#8B92A5', font: { family: 'IBM Plex Mono', size: 10 } } },
+            tooltip: {
+              callbacks: {
+                label: (context) => `${context.dataset.label}: ${context.parsed.y.toFixed(1)}% ${t.value.datasets.reachedFire}`
+              }
+            }
+          },
+          scales: {
+            x: { grid: { color: '#232838' }, ticks: { color: '#8B92A5', font: { family: 'IBM Plex Mono', size: 10 }, autoSkip: true, maxTicksLimit: 8 } },
+            y: {
+              min: 0, max: 100,
+              grid: { color: '#232838' },
+              ticks: { color: '#8B92A5', font: { family: 'IBM Plex Mono', size: 10 }, callback: (v) => `${v}%` }
+            }
+          }
+        }
+      });
+    };
+
+    // ---- Parachute what-if preview ----
+    // Recomputes the FIRE curve under a hypothetical spending cut / head start,
+    // reusing the baseline run's exact seed and every other parameter, so the
+    // only thing that differs between "Baseline" and "What-if" is the change
+    // the sliders represent — not fresh random noise.
+    const parachuteDelta = computed(() => {
+      if (!parachuteFire.value || !lastFire.value) return 0;
+      return parachuteFire.value.overallSuccessRate - lastFire.value.overallSuccessRate;
+    });
+
+    function recomputeParachute() {
+      if (!lastRunParams.value || !currentSeed.value) return;
+
+      if (parachuteSpendCut.value === 0 && parachuteHeadStart.value === 0) {
+        parachuteFire.value = null;
+        parachuteError.value = '';
+        renderFireChart(lastFire.value, null);
+        return;
+      }
+
+      const p = lastRunParams.value;
+      const adjustedSpending = p.annualSpending * (1 - parachuteSpendCut.value / 100);
+
+      try {
+        const result = window.MonteCarloSimulation.runSimulation({
+          years: p.years,
+          initialCapital: p.initialCapital,
+          simulations: p.simulations,
+          mu: p.mu,
+          sigma: p.sigma,
+          annualSpending: adjustedSpending,
+          headStartYears: parachuteHeadStart.value,
+          seed: currentSeed.value // same seed as baseline — isolates the effect of the change itself
+        });
+        parachuteFire.value = result.fire;
+        parachuteError.value = '';
+        renderFireChart(lastFire.value, result.fire);
+      } catch (error) {
+        console.error('Parachute recompute failed:', error);
+        parachuteFire.value = null;
+        parachuteError.value = error.message || t.value.whatIf.scenarioError;
+        renderFireChart(lastFire.value, null);
+      }
+    }
+
+    // Debounced so dragging a slider doesn't re-run a full simulation on every
+    // pixel of movement — recomputes ~150ms after the user stops moving it.
+    watch([parachuteSpendCut, parachuteHeadStart], () => {
+      clearTimeout(parachuteDebounceHandle);
+      parachuteDebounceHandle = setTimeout(recomputeParachute, 150);
+    });
+
+    // Re-render already-drawn charts on language switch so axis labels and
+    // dataset names pick up the new language immediately, instead of waiting
+    // for the next simulation run.
+    watch(lang, () => {
+      document.documentElement.lang = lang.value;
+      if (lastSeries.value) renderChart(lastSeries.value);
+      if (lastHistogram.value) renderHistogram(lastHistogram.value);
+      if (lastFire.value) renderFireChart(lastFire.value, parachuteFire.value);
+    });
+
+    // ---- CSV export ----
+    const downloadCsv = () => {
+      if (!lastSeries.value || !lastRunParams.value) return;
+      const p = lastRunParams.value;
+
+      const csvT = t.value.csv;
+      const metaLines = [
+        `${t.value.printTable.parameter},${t.value.printTable.value}`,
+        `${csvT.years},${p.years}`,
+        `${csvT.initialCapital},${p.initialCapital}`,
+        `${csvT.simulations},${p.simulations}`,
+        `${csvT.mu},${p.mu}`,
+        `${csvT.sigma},${p.sigma}`,
+        `${csvT.annualSpending},${p.annualSpending}`,
+        ''
+      ];
+
+      if (lastFire.value) {
+        metaLines.push(
+          csvT.fireHeader,
+          `${csvT.fireLine},${lastFire.value.threshold}`,
+          `${csvT.successRate(p.years)},${(lastFire.value.overallSuccessRate * 100).toFixed(1)}%`,
+          `${csvT.medianYear},${lastFire.value.medianYearToFire !== null ? lastFire.value.medianYearToFire : csvT.notReached}`,
+          ''
+        );
+      }
+
+      const header = lastFire.value ? csvT.headerFire : csvT.header;
+      const fireByYear = lastFire.value
+        ? new Map(lastFire.value.successRateByYear.map(pt => [pt.year, pt.successRate]))
+        : null;
+      const rows = lastSeries.value.map(pt => {
+        const base = `${pt.year},${pt.p10},${pt.p50},${pt.p90}`;
+        return fireByYear ? `${base},${(fireByYear.get(pt.year) * 100).toFixed(1)}%` : base;
+      });
+      const csvContent = [...metaLines, header, ...rows].join('\n');
+
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `simulation_y${p.years}_mu${p.mu}_sigma${p.sigma}.csv`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    };
+
+    // ---- Print / Save as PDF ----
+    // window.print() opens the browser's native print dialog, which on every
+    // major browser includes a "Save as PDF" destination — no extra library
+    // needed. resizeAllCharts() is called directly here (not just via the
+    // beforeprint listener) since a direct call is more deterministic than
+    // relying solely on event timing across browsers.
+    const printResults = () => {
+      resizeAllCharts();
+      setTimeout(() => {
+        resizeAllCharts();
+        window.print();
+      }, 60);
+    };
+
+    onBeforeUnmount(() => {
+      if (chartInstance) chartInstance.destroy();
+      if (histogramInstance) histogramInstance.destroy();
+      if (fireChartInstance) fireChartInstance.destroy();
+      clearTimeout(parachuteDebounceHandle);
+    });
+
+    return {
+      lang, t, LANG_OPTIONS,
+      form, loading, errorMessage, hasRunOnce, instant, isStale, lastRunLabel, lastRunParams, lastSeries,
+      summary, maxSimulations, presetChoice, presetsByGroup, pinnedResult,
+      currentSeed, seedInput, shareUrl, linkCopied,
+      lastFire, parachuteSpendCut, parachuteHeadStart, parachuteFire, parachuteDelta, parachuteError,
+      completionMessage, canRewind, rewind,
+      fmt, pct, runSimulation, togglePin, downloadCsv, printResults, copyShareLink
+    };
+  }
+}).mount('#app');
+</script>
+</body>
+</html>

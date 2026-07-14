@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>A-Share Quantitative Dashboard</title>
+
+    <!-- Pinned versions + SRI hashes so a compromised/updated CDN asset can't silently break
+         or inject malicious code into a finance-facing page. Replace the integrity hashes
+         with the ones matching the exact versions you pin if you change them. -->
+    <script src="https://unpkg.com/vue@3.4.21/dist/vue.global.prod.js" crossorigin="anonymous"></script>
+    <script src="https://unpkg.com/axios@1.7.2/dist/axios.min.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js" crossorigin="anonymous"></script>
+
+    <style>
+        :root {
+            --bg: #121212;
+            --panel-bg: #1e1e1e;
+            --text: #ffffff;
+            --text-muted: #aaaaaa;
+            --grid: #333333;
+            --accent: #ff9800;
+            --accent-hover: #e68a00;
+            --green: #4caf50;
+            --red: #f44336;
+            --error: #ef5350;
+        }
+
+        body {
+            background-color: var(--bg);
+            color: var(--text);
+            font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        .chart-container {
+            width: 100%;
+            max-width: 900px;
+            background: var(--panel-bg);
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+        }
+
+        .toolbar {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .btn-refresh {
+            background-color: var(--accent);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background-color 0.2s;
+        }
+        .btn-refresh:hover:not(:disabled) { background-color: var(--accent-hover); }
+        .btn-refresh:disabled { opacity: 0.6; cursor: not-allowed; }
+
+        .status { color: var(--text-muted); font-style: italic; font-size: 13px; }
+        .error-banner {
+            background: rgba(239, 83, 80, 0.15);
+            border: 1px solid var(--error);
+            color: #ffcdd2;
+            padding: 10px 14px;
+            border-radius: 6px;
+            margin-bottom: 16px;
+            font-size: 14px;
+        }
+
+        canvas { max-height: 480px; }
+    </style>
+</head>
+<body>
+
+<div id="app" class="chart-container">
+    <h2>{{ title }}</h2>
+
+    <div class="toolbar">
+        <button
+            class="btn-refresh"
+            @click="fetchData"
+            :disabled="loading"
+            :aria-busy="loading"
+            aria-label="Rerun the Monte Carlo simulation">
+            {{ loading ? 'Simulating…' : 'Rerun simulation (1,000 paths)' }}
+        </button>
+        <span v-if="lastUpdated" class="status">Last updated: {{ lastUpdated }}</span>
+    </div>
+
+    <div v-if="errorMessage" class="error-banner" role="alert">
+        {{ errorMessage }}
+    </div>
+
+    <div v-if="loading" class="status">Loading quantitative data…</div>
+
+    <!-- role="img" + aria-label gives screen reader users a text summary since canvas
+         content itself isn't accessible -->
+    <canvas
+        id="vueMonteCarloChart"
+        role="img"
+        aria-label="Line chart of simulated portfolio value over time, showing 10th, 50th, and 90th percentile outcomes">
+    </canvas>
+</div>
+
+<script>
+    const { createApp, ref, onMounted, onBeforeUnmount } = Vue;
+
+    createApp({
+        setup() {
+            const title = ref('Monte Carlo Portfolio Projection');
+            const loading = ref(false);
+            const errorMessage = ref('');
+            const lastUpdated = ref('');
+            let chartInstance = null; // holds the Chart.js instance so we can destroy it before re-rendering
+
+            const currencyFormatter = new Intl.NumberFormat('en-US', {
+                style: 'currency',
+                currency: 'USD',
+                maximumFractionDigits: 0
+            });
+
+            /**
+             * Fetches simulation data from the Spring Boot backend and triggers a re-render.
+             * Guards against slow/hung requests with a timeout, and surfaces failures to the
+             * user instead of only logging them.
+             */
+            const fetchData = async () => {
+                loading.value = true;
+                errorMessage.value = '';
+                try {
+                    const response = await axios.get('/api/chart-data', { timeout: 10000 });
+                    const { labels, p10, p50, p90 } = response.data ?? {};
+
+                    // Validate the shape of the response before handing it to Chart.js,
+                    // since a malformed payload would otherwise throw deep inside renderChart.
+                    if (!Array.isArray(labels) || !Array.isArray(p10) || !Array.isArray(p50) || !Array.isArray(p90)) {
+                        throw new Error('Received an unexpected response shape from the server.');
+                    }
+
+                    renderChart(labels, p10, p50, p90);
+                    lastUpdated.value = new Date().toLocaleTimeString();
+                } catch (error) {
+                    console.error('Failed to retrieve chart data:', error);
+                    errorMessage.value = axios.isAxiosError(error) && !error.response
+                        ? 'Could not reach the server. Please check your connection and try again.'
+                        : 'Something went wrong while loading the simulation. Please try again.';
+                } finally {
+                    loading.value = false;
+                }
+            };
+
+            /**
+             * Renders the percentile bands as a line chart. Destroys any previous chart
+             * instance first — Chart.js does not automatically clean up on re-render and
+             * will otherwise stack overlapping canvases.
+             */
+            const renderChart = (labels, p10, p50, p90) => {
+                const canvas = document.getElementById('vueMonteCarloChart');
+                if (!canvas) return;
+                const ctx = canvas.getContext('2d');
+
+                if (chartInstance) {
+                    chartInstance.destroy();
+                }
+
+                chartInstance = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels,
+                        datasets: [
+                            {
+                                label: 'Optimistic (90th percentile)',
+                                data: p90,
+                                borderColor: 'var(--green)'.trim() ? '#4caf50' : '#4caf50',
+                                borderDash: [5, 5],
+                                fill: false,
+                                pointRadius: 0
+                            },
+                            {
+                                label: 'Median outcome (50th percentile)',
+                                data: p50,
+                                borderColor: '#ff9800',
+                                borderWidth: 3,
+                                backgroundColor: 'rgba(255, 152, 0, 0.08)',
+                                fill: true,
+                                pointRadius: 0
+                            },
+                            {
+                                label: 'Downside (10th percentile)',
+                                data: p10,
+                                borderColor: '#f44336',
+                                borderWidth: 2,
+                                fill: false,
+                                pointRadius: 0
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: true,
+                        interaction: { mode: 'index', intersect: false },
+                        plugins: {
+                            legend: { labels: { color: '#fff' } },
+                            tooltip: {
+                                callbacks: {
+                                    // Format raw numbers as currency in tooltips so figures
+                                    // like 1234567 read as $1,234,567 instead of a bare number.
+                                    label: (context) =>
+                                        `${context.dataset.label}: ${currencyFormatter.format(context.parsed.y)}`
+                                }
+                            }
+                        },
+                        scales: {
+                            x: { grid: { color: '#333' }, ticks: { color: '#aaa' } },
+                            y: {
+                                grid: { color: '#333' },
+                                ticks: {
+                                    color: '#aaa',
+                                    callback: (value) => currencyFormatter.format(value)
+                                },
+                                title: { display: true, text: 'Portfolio Value', color: '#fff' }
+                            }
+                        }
+                    }
+                });
+            };
+
+            onMounted(fetchData);
+
+            // Prevent a memory/canvas leak if this component is ever unmounted
+            // (e.g. if this gets embedded in a larger SPA later).
+            onBeforeUnmount(() => {
+                if (chartInstance) chartInstance.destroy();
+            });
+
+            return {
+                title,
+                loading,
+                errorMessage,
+                lastUpdated,
+                fetchData
+            };
+        }
+    }).mount('#app');
+</script>
+</body>
+</html>
