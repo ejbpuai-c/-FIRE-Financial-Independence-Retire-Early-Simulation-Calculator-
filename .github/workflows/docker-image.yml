@@ -38,4 +38,5 @@ jobs:
         context: ./A-Share-Analysis
         file: ./A-Share-Analysis/Dockerfile
         push: true
-        tags: ${{ id.meta.outputs.tags }}
+        tags: ${{ steps.meta.outputs.tags }} 
+        labels: ${{ steps.meta.outputs.labels }}  
