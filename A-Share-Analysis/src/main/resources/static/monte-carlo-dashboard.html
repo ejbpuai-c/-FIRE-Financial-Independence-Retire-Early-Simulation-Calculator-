@@ -3,7 +3,113 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Portfolio Simulator</title>
+
+<!--
+  SEO NOTE: replace https://example.com/monte-carlo-dashboard/ below with the
+  actual URL this page is deployed at (canonical, og:url, twitter, hreflang,
+  and JSON-LD all reference it). Search engines treat a mismatched canonical
+  as a signal to ignore, so this one line matters more than the rest of the
+  block combined.
+-->
+<title>FIRE &amp; Retirement Monte Carlo Simulator — Portfolio Outcome &amp; Safe Withdrawal Rate Calculator</title>
+<meta name="description" content="Free Monte Carlo simulator for retirement planning and FIRE (Financial Independence, Retire Early). Model portfolio growth under Geometric Brownian Motion, test safe withdrawal rates against the 4% rule, and see your probability of success across thousands of simulated market paths. No signup, runs entirely in your browser.">
+<meta name="keywords" content="Monte Carlo simulation, retirement calculator, FIRE calculator, financial independence retire early, safe withdrawal rate, 4% rule, portfolio simulator, geometric brownian motion, retirement planning tool">
+<meta name="author" content="Portfolio Outcome Simulator">
+<meta name="robots" content="index, follow, max-image-preview:large">
+<link rel="canonical" href="https://example.com/monte-carlo-dashboard/">
+<link rel="alternate" hreflang="en" href="https://example.com/monte-carlo-dashboard/?lang=en">
+<link rel="alternate" hreflang="zh" href="https://example.com/monte-carlo-dashboard/?lang=zh">
+<link rel="alternate" hreflang="x-default" href="https://example.com/monte-carlo-dashboard/">
+
+<!-- Open Graph (Facebook, LinkedIn, Slack previews, etc.) -->
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Portfolio Outcome Simulator">
+<meta property="og:title" content="FIRE & Retirement Monte Carlo Simulator">
+<meta property="og:description" content="Model your portfolio's future under thousands of simulated market paths. Test FIRE timelines, safe withdrawal rates, and the 4% rule — free, private, and runs entirely in your browser.">
+<meta property="og:url" content="https://example.com/monte-carlo-dashboard/">
+<meta property="og:locale" content="en_US">
+<meta property="og:locale:alternate" content="zh_CN">
+
+<!-- Twitter Card -->
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="FIRE & Retirement Monte Carlo Simulator">
+<meta name="twitter:description" content="Model portfolio growth and FIRE timelines across thousands of simulated market paths, using Geometric Brownian Motion and the 4% rule.">
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebApplication",
+  "name": "Portfolio Outcome Simulator",
+  "url": "https://example.com/monte-carlo-dashboard/",
+  "description": "A browser-based Monte Carlo simulator that models portfolio growth under Geometric Brownian Motion, projects FIRE (Financial Independence, Retire Early) timelines, and tests safe withdrawal rates against the 4% rule.",
+  "applicationCategory": "FinanceApplication",
+  "operatingSystem": "Any",
+  "browserRequirements": "Requires JavaScript",
+  "offers": {
+    "@type": "Offer",
+    "price": "0",
+    "priceCurrency": "USD"
+  },
+  "inLanguage": ["en", "zh"],
+  "featureList": [
+    "Monte Carlo simulation of portfolio outcomes",
+    "Configurable expected return, volatility, time horizon and simulation count",
+    "FIRE success-rate and median-year-to-FIRE projections",
+    "4% safe-withdrawal-rate FIRE line",
+    "What-if scenario comparison (spending cuts, earlier start)",
+    "Shareable simulation links, CSV export, print/PDF export",
+    "English and Chinese language support"
+  ]
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "What is a Monte Carlo simulation in retirement planning?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "A Monte Carlo simulation projects thousands of possible future paths for a portfolio's value by repeatedly sampling random investment returns from a given expected return and volatility. Instead of a single projected outcome, it produces a distribution of outcomes — for example, the 10th, 50th, and 90th percentile portfolio values at each year — which better reflects the uncertainty of real markets than a fixed-rate projection."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "What does FIRE mean?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "FIRE stands for Financial Independence, Retire Early. It refers to accumulating enough invested assets that ongoing investment returns can sustain your living expenses indefinitely, without relying on employment income."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "What is the 4% rule?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "The 4% rule is a rule of thumb from retirement research suggesting that withdrawing 4% of a portfolio's initial value each year, adjusted for inflation, has historically had a high probability of lasting at least 30 years. Dividing annual spending by 4% gives a target portfolio size, often called the FIRE number or FIRE line."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "How accurate is a Monte Carlo portfolio simulator?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "A Monte Carlo simulator is only as accurate as its input assumptions for expected return and volatility, and it models a simplified statistical process that does not account for fees, taxes, inflation, or changing real-world market conditions. It is best used to compare scenarios and understand a range of plausible outcomes, not as a precise forecast."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "What is Geometric Brownian Motion?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Geometric Brownian Motion (GBM) is a mathematical model for how asset prices evolve over time, combining a steady expected growth rate (drift) with continuous random fluctuation (volatility). It is the same model underlying the Black-Scholes option pricing formula and is widely used in retirement and investment projection tools."
+      }
+    }
+  ]
+}
+</script>
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
@@ -589,9 +695,37 @@
     align-items: baseline;
     margin-bottom: 4px;
   }
-  .histogram-title { font-size: 12px; color: var(--text-dim); font-family: "IBM Plex Mono", monospace; text-transform: uppercase; letter-spacing: 0.08em; }
+  .histogram-title { margin: 0; font-size: 12px; color: var(--text-dim); font-family: "IBM Plex Mono", monospace; text-transform: uppercase; letter-spacing: 0.08em; }
   .histogram-note { font-size: 11px; color: var(--text-dim); margin: 0 0 10px; }
   .histogram-canvas-wrap { position: relative; height: 180px; overflow: hidden; }
+
+  .faq-section {
+    margin-top: 40px;
+    padding-top: 22px;
+    border-top: 1px solid var(--border);
+  }
+  .faq-section h2 {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 14px;
+    letter-spacing: 0.04em;
+    color: var(--text);
+    margin: 0 0 16px;
+  }
+  .faq-item { margin-bottom: 18px; }
+  .faq-item:last-child { margin-bottom: 0; }
+  .faq-item h3 {
+    font-size: 13px;
+    color: var(--amber);
+    margin: 0 0 6px;
+    font-weight: 600;
+  }
+  .faq-item p {
+    font-size: 12.5px;
+    line-height: 1.6;
+    color: var(--text-dim);
+    margin: 0;
+    max-width: 68ch;
+  }
 
   footer {
     margin-top: 24px;
@@ -719,6 +853,16 @@
 </style>
 </head>
 <body>
+<noscript>
+  <div style="max-width:640px;margin:60px auto;padding:24px;font-family:sans-serif;line-height:1.6;">
+    <h1>FIRE &amp; Retirement Monte Carlo Simulator</h1>
+    <p>This interactive tool requires JavaScript to run its portfolio simulations. It models
+    retirement portfolio outcomes using Monte Carlo simulation and Geometric Brownian Motion,
+    projects Financial Independence / Retire Early (FIRE) timelines against the 4% safe
+    withdrawal rate rule, and lets you compare what-if scenarios such as spending cuts or an
+    earlier start date. Please enable JavaScript to use the calculator.</p>
+  </div>
+</noscript>
 
 <div id="app" class="wrap">
 
@@ -829,7 +973,7 @@
 
     <!-- Controls -->
     <section class="panel" aria-label="Simulation parameters">
-      <p class="panel-title">{{ t.panel.paramsTitle }}</p>
+      <h2 class="panel-title">{{ t.panel.paramsTitle }}</h2>
 
       <div class="preset-row">
         <label for="preset-select">
@@ -992,7 +1136,7 @@
     <!-- Chart -->
     <section class="panel chart-panel" aria-label="Simulation results">
       <div class="chart-meta">
-        <p class="panel-title" style="margin:0; flex:1;">{{ t.chart.resultsTitle }}</p>
+        <h2 class="panel-title" style="margin:0; flex:1;">{{ t.chart.resultsTitle }}</h2>
         <div class="legend-inline">
           <span><i class="dot" style="background:#4FA88D"></i>P90</span>
           <span><i class="dot" style="background:#D4A24C"></i>P50</span>
@@ -1021,7 +1165,7 @@
            spread of outcomes at the final year, rather than just three lines. -->
       <div class="histogram-section" v-if="hasRunOnce">
         <div class="histogram-head">
-          <span class="histogram-title">{{ t.histogram.title }}</span>
+          <h3 class="histogram-title">{{ t.histogram.title }}</h3>
         </div>
         <p class="histogram-note">
           {{ t.histogram.note(lastRunParams?.simulations?.toLocaleString(), lastRunParams?.years) }}
@@ -1036,7 +1180,7 @@
            than just showing wealth over time. -->
       <div class="fire-section" v-if="lastFire">
         <div class="histogram-head">
-          <span class="histogram-title">{{ t.fireSection.title }}</span>
+          <h3 class="histogram-title">{{ t.fireSection.title }}</h3>
           <span class="info-icon" tabindex="0" :title="t.fireSection.tooltip">?</span>
         </div>
 
@@ -1094,6 +1238,17 @@
     <p class="footer-note">{{ t.footer.computedNote }}</p>
     <p class="disclaimer">{{ t.footer.disclaimer }}</p>
   </footer>
+
+  <!-- Visible FAQ content, matching the FAQPage structured data in <head>.
+       Google's guidelines require FAQ schema to mirror what's actually shown
+       on the page, so this section is real content, not just markup. -->
+  <section class="faq-section" aria-label="Frequently asked questions">
+    <h2>{{ t.faq.title }}</h2>
+    <div class="faq-item" v-for="item in t.faq.items" :key="item.q">
+      <h3>{{ item.q }}</h3>
+      <p>{{ item.a }}</p>
+    </div>
+  </section>
 </div>
 
 <script>
@@ -1329,6 +1484,31 @@ const I18N = {
       p90: 'P90 · Optimistic (current)', p50: 'P50 · Median (current)', p10: 'P10 · Downside (current)',
       pinnedPrefix: 'Pinned (before) ·', baseline: 'Baseline', whatIfLabel: 'What-if',
       naLabel: 'n/a', pathsWord: 'paths', ofTotal: 'of total', rangeWord: 'Range:', reachedFire: 'of paths had reached FIRE'
+    },
+    faq: {
+      title: 'Frequently asked questions',
+      items: [
+        {
+          q: 'What is a Monte Carlo simulation in retirement planning?',
+          a: "A Monte Carlo simulation projects thousands of possible future paths for a portfolio's value by repeatedly sampling random investment returns from a given expected return and volatility. Instead of one projected outcome, it produces a distribution — for example the 10th, 50th, and 90th percentile portfolio values at each year — which better reflects real-world uncertainty than a fixed-rate projection."
+        },
+        {
+          q: 'What does FIRE mean?',
+          a: 'FIRE stands for Financial Independence, Retire Early. It refers to accumulating enough invested assets that ongoing investment returns can sustain your living expenses indefinitely, without relying on employment income.'
+        },
+        {
+          q: 'What is the 4% rule?',
+          a: "The 4% rule is a rule of thumb from retirement research suggesting that withdrawing 4% of a portfolio's initial value each year, adjusted for inflation, has historically had a high probability of lasting at least 30 years. Dividing annual spending by 4% gives a target portfolio size — the FIRE line used throughout this tool."
+        },
+        {
+          q: 'How accurate is a Monte Carlo portfolio simulator?',
+          a: 'A simulator like this one is only as accurate as its input assumptions for expected return and volatility, and it models a simplified statistical process that ignores fees, taxes, inflation, and changing real-world conditions. Treat it as a way to compare scenarios and understand a range of plausible outcomes, not as a precise forecast.'
+        },
+        {
+          q: 'What is Geometric Brownian Motion?',
+          a: 'Geometric Brownian Motion (GBM) is a mathematical model for how asset prices evolve over time, combining a steady expected growth rate (drift) with continuous random fluctuation (volatility). It is the same model underlying the Black-Scholes option-pricing formula and is widely used in retirement and investment projection tools, including this simulator.'
+        }
+      ]
     }
   },
   zh: {
@@ -1513,6 +1693,31 @@ const I18N = {
       p90: 'P90 · 乐观情形（当前）', p50: 'P50 · 中位数（当前）', p10: 'P10 · 悲观情形（当前）',
       pinnedPrefix: '已固定（此前）·', baseline: '基线', whatIfLabel: '假设情形',
       naLabel: '不适用', pathsWord: '条路径', ofTotal: '占总数', rangeWord: '区间：', reachedFire: '的路径已达到 FIRE 线'
+    },
+    faq: {
+      title: '常见问题',
+      items: [
+        {
+          q: '什么是退休规划中的蒙特卡洛模拟？',
+          a: '蒙特卡洛模拟通过反复从给定的预期收益率和波动率中抽取随机的投资回报，来推演投资组合未来数千种可能的走势。它得到的不是单一的预测结果，而是一个分布 —— 例如每一年投资组合价值的第 10、50、90 百分位数 —— 这比固定收益率的预测更能反映真实市场的不确定性。'
+        },
+        {
+          q: 'FIRE 是什么意思？',
+          a: 'FIRE 即"财务独立，提前退休"（Financial Independence, Retire Early）。它指积累足够的投资资产，使投资收益能够无限期地支撑你的生活开支，而无需依赖工作收入。'
+        },
+        {
+          q: '什么是 4% 法则？',
+          a: '4% 法则是退休研究中的一个经验法则，指出每年从投资组合初始价值中提取 4%（并根据通胀调整），历史上有很高的概率能维持至少 30 年。将年支出除以 4%，即可得到目标投资组合规模 —— 也就是本工具中所使用的 FIRE 线。'
+        },
+        {
+          q: '蒙特卡洛投资组合模拟器的准确度如何？',
+          a: '像本工具这样的模拟器，其准确度完全取决于预期收益率和波动率这两个输入假设，并且它建模的是一个忽略了费用、税费、通货膨胀和真实市场变化条件的简化统计过程。请将它视为比较不同情形、了解可能结果范围的工具，而不是精确的预测。'
+        },
+        {
+          q: '什么是几何布朗运动？',
+          a: '几何布朗运动（Geometric Brownian Motion, GBM）是描述资产价格随时间演变的数学模型，它将稳定的预期增长率（漂移率）与持续的随机波动（波动率）结合在一起。它也是 Black-Scholes 期权定价公式背后所用的模型，并被广泛应用于包括本模拟器在内的退休和投资预测工具中。'
+        }
+      ]
     }
   }
 };
@@ -1823,7 +2028,8 @@ createApp({
         mu: p.mu,
         sigma: p.sigma,
         annualSpending: p.annualSpending,
-        seed: currentSeed.value
+        seed: currentSeed.value,
+        lang: lang.value
       });
       return `${window.location.origin}${window.location.pathname}?${params.toString()}`;
     });
@@ -1851,6 +2057,9 @@ createApp({
     onMounted(() => {
       document.documentElement.lang = lang.value;
       const urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.get('lang') === 'zh' || urlParams.get('lang') === 'en') {
+        lang.value = urlParams.get('lang');
+      }
       if (urlParams.has('seed') && urlParams.has('years')) {
         form.years = Number(urlParams.get('years'));
         form.initialCapital = Number(urlParams.get('initialCapital'));
@@ -2134,6 +2343,10 @@ createApp({
       if (lastSeries.value) renderChart(lastSeries.value);
       if (lastHistogram.value) renderHistogram(lastHistogram.value);
       if (lastFire.value) renderFireChart(lastFire.value, parachuteFire.value);
+
+      const url = new URL(window.location.href);
+      url.searchParams.set('lang', lang.value);
+      window.history.replaceState(null, '', url.toString());
     });
 
     // ---- CSV export ----
