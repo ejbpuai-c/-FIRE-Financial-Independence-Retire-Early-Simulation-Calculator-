@@ -5,7 +5,7 @@ on:
     branches: [ "main" ]
 
 env:
-  IMAGE_NAME: a-share-analysis # 镜像名字（必须全小写）
+  IMAGE_NAME: a-share-analysis 
 
 jobs:
   build:
@@ -13,7 +13,7 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
-    # 1. 登录到 GitHub 官方的免费镜像仓库 (GHCR)
+
     - name: Log in to GitHub Container Registry
       uses: docker/login-action@v3
       with:
@@ -21,7 +21,7 @@ jobs:
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
 
-    # 2. 提取元数据（自动生成版本标签，防止重名）
+
     - name: Extract metadata
       id: meta
       uses: docker/metadata-action@v5
@@ -31,7 +31,7 @@ jobs:
           type=raw,value=latest
           type=sha,format=short
 
-    # 3. 开始构建并自动上传
+
     - name: Build and push Docker image
       uses: docker/build-push-action@v5
       with:
